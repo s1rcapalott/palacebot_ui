@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+import asyncio
 
 class ProxyManagerPage(QWidget):
     def __init__(self, proxy_manager):
@@ -55,6 +56,7 @@ class ProxyManagerPage(QWidget):
 
         self.add_button = QPushButton("Add Proxy")
         input_layout.addWidget(self.add_button)
+        self.add_button.clicked.connect(self.handle_add_proxy)
 
         layout.addLayout(input_layout)
 
@@ -73,3 +75,23 @@ class ProxyManagerPage(QWidget):
         self.group_select.clear()
         for group in self.proxy_manager.proxylist.get("Groups", []):
             self.group_select.addItem(group["group_name"])
+    
+    def handle_add_proxy(self):
+        proxy = self.proxy_input.text().strip()
+        group = self.group_select.currentText().strip()
+
+        if not proxy or not group:
+            self.log_area.append("Please enter a proxy and select a group.")
+            return
+        
+        self.log_area.append(f"Adding proxy '{proxy}' to group '{group}'...")
+
+        async def add_and_log():
+            result = await self.proxy_manager.add_proxy(proxy, group)
+            if result:
+                self.log_area.append(f"Proxy added successfully.")
+                self.proxy_input.clear()
+            else:
+                self.log_area.append(f"Failed to add proxy")
+
+        asyncio.run(add_and_log())
