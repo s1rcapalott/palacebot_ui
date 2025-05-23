@@ -67,7 +67,9 @@ class ProxyManagerPage(QWidget):
         self.setLayout(layout)
         self.load_groups()
 
-        def load_groups(self):
-            self.group_select.clear()
-            for group in self.proxy_manager.proxylist.get("Groups", []):
-                self.group_select.addItem(group["group_name"])
+    def load_groups(self):
+        print("Called load_groups()")
+        print("Proxy groups loaded: ", self.proxy_manager.proxylist)
+        self.group_select.clear()
+        for group in self.proxy_manager.proxylist.get("Groups", []):
+            self.group_select.addItem(group["group_name"])

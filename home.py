@@ -1,4 +1,7 @@
 import sys
+sys.path.append(r"C:\Users\mmira\Shoe-Palace-Bot-1")
+from proxy import Proxy_Manager
+import asyncio
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from home_page import HomePage
 from task_manager_page import TaskManagerPage
@@ -14,10 +17,14 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
 
+        #Backend logic
+        self.proxy_manager = Proxy_Manager(proxy_file=r"C:\Users\mmira\Shoe-Palace-Bot-1\proxy.json")
+        asyncio.run(self.proxy_manager.load_proxies())
+
         #Pages
         self.home_page = HomePage(self.switch_page)
         self.task_page = TaskManagerPage()
-        self.proxy_page = ProxyManagerPage()
+        self.proxy_page = ProxyManagerPage(self.proxy_manager)
 
         # add pages to stack
         self.stack.addWidget(self.home_page)
@@ -27,7 +34,7 @@ class MainWindow(QMainWindow):
         self.page_map = {
             "home": 0,
             "tasks": 1,
-            "proxies": 2,
+            "proxies": 2
         }
 
     def switch_page(self, page_name):
