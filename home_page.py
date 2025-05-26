@@ -55,7 +55,7 @@ class HomePage(QWidget):
 
         #Placeholder for Account
         self.accounts_btn = QPushButton("Accounts")
-        self.accounts_btn.clicked.connect(lambda: self.switch_page_callback("account"))
+        self.accounts_btn.clicked.connect(lambda: self.switch_page_callback("accounts"))
         grid.addWidget(self.accounts_btn, 1, 1)
 
         main_layout.addLayout(grid)

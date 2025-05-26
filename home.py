@@ -7,6 +7,7 @@ from home_page import HomePage
 from task_manager_page import TaskManagerPage
 from proxy_manager_page import ProxyManagerPage
 from billing_page import BillingPage
+from accounts_page import AccountsPage
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -27,18 +28,21 @@ class MainWindow(QMainWindow):
         self.task_page = TaskManagerPage()
         self.proxy_page = ProxyManagerPage(self.proxy_manager)
         self.billing_page = BillingPage()
+        self.accounts_page = AccountsPage()
 
         # add pages to stack
         self.stack.addWidget(self.home_page)
         self.stack.addWidget(self.task_page)
         self.stack.addWidget(self.proxy_page)
         self.stack.addWidget(self.billing_page)
+        self.stack.addWidget(self.accounts_page)
 
         self.page_map = {
             "home": 0,
             "tasks": 1,
             "proxies": 2,
-            "billing": 3
+            "billing": 3,
+            "accounts": 4
         }
 
     def switch_page(self, page_name):
