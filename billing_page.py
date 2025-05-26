@@ -1,12 +1,13 @@
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout
+    QWidget, QLabel, QVBoxLayout, QPushButton
 )
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 
 class BillingPage(QWidget):
-    def __init__(self):
+    def __init__(self, switch_page_callback):
         super().__init__()
+        self.switch_page_callback = switch_page_callback
 
         self.setStyleSheet("""
             QWidget {
@@ -28,5 +29,9 @@ class BillingPage(QWidget):
         placeholder = QLabel("This is where the billing profiles will be managed.")
         placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(placeholder)
+
+        self.back_button = QPushButton("Back to Home")
+        self.back_button.clicked.connect(lambda: self.switch_page_callback("home"))
+        layout.addWidget(self.back_button)
 
         self.setLayout(layout)

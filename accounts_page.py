@@ -6,8 +6,12 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 
 class AccountsPage(QWidget):
-    def __init__(self):
+    def __init__(self, switch_page_callback):
         super().__init__()
+
+        self.accounts = []
+        self.storage_path = "accounts.json"
+        self.switch_page_callback = switch_page_callback
 
         self.setStyleSheet("""
             QWidget {
@@ -35,6 +39,9 @@ class AccountsPage(QWidget):
                 border-radius: 6px;
             }
         """)
+        
+        self.back_button = QPushButton("Back to Home")
+        self.back_button.clicked.connect(lambda: switch_page_callback("home"))
 
         layout = QVBoxLayout()
 
@@ -59,6 +66,7 @@ class AccountsPage(QWidget):
         #Add button
         self.add_button = QPushButton("Add Account")
         layout.addWidget(self.add_button)
+        self.add_button.clicked.connect(self.handle_add_account)
 
         #Output area
         self.log_area = QTextEdit()
@@ -66,4 +74,45 @@ class AccountsPage(QWidget):
         self.log_area.setPlaceholderText("Accounts or logs will show here.")
         layout.addWidget(self.log_area)
 
+        self.back_button = QPushButton("Back to Home")
+        self.back_button.clicked.connect(lambda: self.switch_page_callback("home"))
+        layout.addWidget(self.back_button)
+
         self.setLayout(layout)
+        self.load_accounts()
+
+    def handle_add_account(self):
+        email = self.email_input.text().strip()
+        password = self.password_input.text().strip()
+
+        if not email or not password:
+            self.log_area.append("Please enter both email and password.")
+            return
+        
+        self.accounts.append((email, password))
+        self.log_area.append(f"Added account: {email}")
+        
+        self.email_input.clear()
+        self.password_input.clear()
+
+        self.save_accounts()
+
+    def load_accounts(self):
+        import os, json
+
+        if os.path.exists(self.storage_path):
+            try:
+                with open(self.storage_path, "r") as f:
+                    self.accounts = json.load(f)
+                    for account in self.accounts:
+                        self.log_area.append(f"Loaded account: {account}")
+            except Exception as e:
+                self.log_area.append(f"Falied to load accounts: {e}")
+    
+    def save_accounts(self):
+        import json
+        try:
+            with open(self.storage_path, "w") as f:
+                json.dump(self.accounts, f, indent=4)
+        except Exception as e:
+            self.log_area.append(f"Failed to save accounts: {e}")

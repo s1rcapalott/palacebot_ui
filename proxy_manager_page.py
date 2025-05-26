@@ -6,9 +6,10 @@ from PyQt6.QtGui import QFont
 import asyncio
 
 class ProxyManagerPage(QWidget):
-    def __init__(self, proxy_manager):
+    def __init__(self, proxy_manager, switch_page_callback):
         super().__init__()
         self.proxy_manager = proxy_manager
+        self.switch_page_callback = switch_page_callback
 
         self.setStyleSheet("""
             QWidget {
@@ -68,6 +69,11 @@ class ProxyManagerPage(QWidget):
 
         self.setLayout(layout)
         self.load_groups()
+
+        #Back to home
+        self.back_button = QPushButton("Back to Home")
+        self.back_button.clicked.connect(lambda: self.switch_page_callback("home"))
+        layout.addWidget(self.back_button)
 
     def load_groups(self):
         print("Called load_groups()")

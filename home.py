@@ -26,9 +26,9 @@ class MainWindow(QMainWindow):
         #Pages
         self.home_page = HomePage(self.switch_page)
         self.task_page = TaskManagerPage()
-        self.proxy_page = ProxyManagerPage(self.proxy_manager)
-        self.billing_page = BillingPage()
-        self.accounts_page = AccountsPage()
+        self.proxy_page = ProxyManagerPage(self.proxy_manager, self.switch_page)
+        self.billing_page = BillingPage(self.switch_page)
+        self.accounts_page = AccountsPage(self.switch_page)
 
         # add pages to stack
         self.stack.addWidget(self.home_page)
