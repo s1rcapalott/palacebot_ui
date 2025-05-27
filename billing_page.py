@@ -12,17 +12,18 @@ class BillingPage(QWidget):
         self.setStyleSheet("""
             QWidget {
                 background-color: #0D1B2A;
-                color: #E0E1DD;               
+                color: #E0E1DD;
+                height: 400px;
             }
             QLabel {
-                font-size: 16px;            
+                font-size: 16px;          
             }
         """)
 
         layout = QVBoxLayout()
 
         title = QLabel("Billing Page")
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 

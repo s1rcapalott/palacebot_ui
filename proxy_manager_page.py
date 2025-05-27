@@ -23,7 +23,7 @@ class ProxyManagerPage(QWidget):
                 background-color: #415A77;
                 border: none;
                 border-radius: 8px;
-                padding: 10px;                
+                padding: 10px;               
             }
             QPushButton:hover {
                 background-color: #778DA9;

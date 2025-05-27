@@ -7,8 +7,9 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 class TaskManagerPage(QWidget):
-    def __init__(self):
+    def __init__(self, switch_page_callback):
         super().__init__()
+        self.switch_page_callback = switch_page_callback
         self.setStyleSheet("""
             QWidget {
                 background-color: #0D1B2A;
@@ -67,6 +68,11 @@ class TaskManagerPage(QWidget):
             self.task_table.setItem(row, 3, QTableWidgetItem("Idle"))
             self.task_table.setItem(row, 4, QTableWidgetItem("Default"))
             self.task_table.setItem(row, 5, QTableWidgetItem("✏️ 🗑️ ▶️ ⏹️"))
+
+        #Back to home
+        self.back_button = QPushButton("Back to home")
+        self.back_button.clicked.connect(lambda:self.switch_page_callback("home"))
+        layout.addWidget(self.back_button)
 
         layout.addWidget(self.task_table)
 

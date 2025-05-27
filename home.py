@@ -1,6 +1,4 @@
 import sys
-sys.path.append(r"C:\Users\mmira\Shoe-Palace-Bot-1")
-from proxy import Proxy_Manager
 import asyncio
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from home_page import HomePage
@@ -8,6 +6,10 @@ from task_manager_page import TaskManagerPage
 from proxy_manager_page import ProxyManagerPage
 from billing_page import BillingPage
 from accounts_page import AccountsPage
+
+#Connected the backend
+sys.path.append(r"C:\Users\mmira\Shoe-Palace-Bot-1")
+from proxy import Proxy_Manager
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -25,7 +27,7 @@ class MainWindow(QMainWindow):
 
         #Pages
         self.home_page = HomePage(self.switch_page)
-        self.task_page = TaskManagerPage()
+        self.task_page = TaskManagerPage(self.switch_page)
         self.proxy_page = ProxyManagerPage(self.proxy_manager, self.switch_page)
         self.billing_page = BillingPage(self.switch_page)
         self.accounts_page = AccountsPage(self.switch_page)

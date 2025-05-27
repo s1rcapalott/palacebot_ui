@@ -20,6 +20,7 @@ class HomePage(QWidget):
                 border-radius: 12px;
                 padding: 20px;
                 font-size: 16px;
+                height: 100px;
             }
             QPushButton:hover {
                 background-color: #415A77;
@@ -30,9 +31,10 @@ class HomePage(QWidget):
 
         #Title card
         title = QLabel("Palace Bot")
-        title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(title)
+        main_layout.addSpacing(10)
 
         #Button grids
         grid = QGridLayout()
