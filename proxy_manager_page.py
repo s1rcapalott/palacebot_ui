@@ -4,6 +4,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 import asyncio
+import threading
+
+def run_async_task(coro):
+    def runner():
+        asyncio.run(coro)
+    threading.Thread(target=runner).start()
 
 class ProxyManagerPage(QWidget):
     def __init__(self, proxy_manager, switch_page_callback):
@@ -72,6 +78,20 @@ class ProxyManagerPage(QWidget):
 
         layout.addLayout(input_layout)
 
+        #Create group
+        self.group_input = QLineEdit()
+        self.group_input.setPlaceholderText("New group name")
+        input_layout.addWidget(self.group_input)
+
+        self.create_group_button = QPushButton("Create Group")
+        self.create_group_button.clicked.connect(self.handle_create_group)
+        input_layout.addWidget(self.create_group_button)
+
+        #Remove group
+        self.remove_button = QPushButton("Remove Group")
+        input_layout.addWidget(self.remove_button)
+        self.remove_button.clicked.connect(self.handle_remove_group)
+
         #Output log
         self.log_area = QTextEdit()
         self.log_area.setReadOnly(True)
@@ -113,3 +133,48 @@ class ProxyManagerPage(QWidget):
                 self.log_area.append(f"Failed to add proxy")
 
         asyncio.run(add_and_log())
+
+    def handle_create_group(self):
+        group_name = self.group_input.text().strip()
+        if not group_name:
+            self.log_area.append("Please enter a group name.")
+            return
+        
+        self.log_area.append(f"Creating group '{group_name}'...")
+
+        async def create_and_refresh():
+            result = await self.proxy_manager.create_group(group_name)
+            if result:
+                self.log_area.append(f"Group '{group_name}' created sucessfully.")
+                self.load_groups()
+                self.group_input.clear()
+            else:
+                self.log_area.append(f"Failed to create group '{group_name}'.")
+
+        async def wrapper():
+            await create_and_refresh()
+        
+        asyncio.run(wrapper())
+    
+    def handle_remove_group(self):
+        group = self.group_select.currentText().strip()
+
+        if not group:
+            self.log_area.append("Please select a group to remove.")
+            return
+        
+        if group == "default":
+            self.log_area.append("You cannot remove the 'default' group.")
+            return
+        
+        self.log_area.append(f"Removing group '{group}'...")
+
+        async def remove_and_refresh():
+            removed = await self.proxy_manager.delete_group(group)
+            if removed:
+                self.log_area.append(f"Group '{group}' removed.")
+                self.load_groups()
+            else:
+                self.log_area.append(f"Failed to remove group '{group}'.")
+
+        run_async_task(remove_and_refresh())
