@@ -50,12 +50,12 @@ class HomePage(QWidget):
         self.proxy_btn.clicked.connect(lambda: self.switch_page_callback("proxies"))
         grid.addWidget(self.proxy_btn, 0, 1)
 
-        #Placeholder for billing
+        #Button for billing
         self.billing_btn = QPushButton("Billing")
         self.billing_btn.clicked.connect(lambda: self.switch_page_callback("billing"))
         grid.addWidget(self.billing_btn, 1, 0)
 
-        #Placeholder for Account
+        #Button for Account
         self.accounts_btn = QPushButton("Accounts")
         self.accounts_btn.clicked.connect(lambda: self.switch_page_callback("accounts"))
         grid.addWidget(self.accounts_btn, 1, 1)

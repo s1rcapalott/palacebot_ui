@@ -39,12 +39,14 @@ class TaskManagerPage(QWidget):
         """)
 
         #Main page
-        layout = QHBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+
+        top_layout = QHBoxLayout()
 
         #sidebar (Left)
         self.sidebar = QListWidget()
         self.sidebar.setFixedWidth(200)
-        layout.addWidget(self.sidebar)
+        top_layout.addWidget(self.sidebar)
 
         #Test products
         for product in ["Jordan 1 Low", "Yeezy Slide", "Air Max 90"]:
@@ -58,6 +60,7 @@ class TaskManagerPage(QWidget):
         self.task_table.horizontalHeader().setStretchLastSection(True)
         self.task_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.task_table.setAlternatingRowColors(True)
+        self.task_table.setRowCount(3)
 
         #Test products (rows)
         self.task_table.setRowCount(3)
@@ -68,12 +71,15 @@ class TaskManagerPage(QWidget):
             self.task_table.setItem(row, 3, QTableWidgetItem("Idle"))
             self.task_table.setItem(row, 4, QTableWidgetItem("Default"))
             self.task_table.setItem(row, 5, QTableWidgetItem("✏️ 🗑️ ▶️ ⏹️"))
+        
+        top_layout.addWidget(self.task_table)
+
+        main_layout.addLayout(top_layout)
 
         #Back to home
         self.back_button = QPushButton("Back to home")
         self.back_button.clicked.connect(lambda:self.switch_page_callback("home"))
-        layout.addWidget(self.back_button)
+        main_layout.addWidget(self.back_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(self.task_table)
 
-        self.setLayout(layout)
+        self.setLayout(main_layout)
