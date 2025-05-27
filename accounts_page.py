@@ -38,6 +38,17 @@ class AccountsPage(QWidget):
                 color: white;
                 border-radius: 6px;
             }
+            QPushButton#backButton {
+                background-color: #415A77;
+                color: #E0E1DD;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-size: 14px;               
+            }
+            QPushButton#backButton:hover {
+                background-color: #778DA9;               
+            }
         """)
         
         self.back_button = QPushButton("Back to Home")
@@ -74,7 +85,9 @@ class AccountsPage(QWidget):
         self.log_area.setPlaceholderText("Accounts or logs will show here.")
         layout.addWidget(self.log_area)
 
+        #Back to home
         self.back_button = QPushButton("Back to Home")
+        self.back_button.setObjectName("backButton")
         self.back_button.clicked.connect(lambda: self.switch_page_callback("home"))
         layout.addWidget(self.back_button)
 
