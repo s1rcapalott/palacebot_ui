@@ -1,5 +1,7 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QComboBox, QTextEdit
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, 
+    QComboBox, QTextEdit, QGroupBox, QGridLayout, QTableWidget,
+    QTableWidgetItem, QSpacerItem, QSizePolicy
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -30,7 +32,8 @@ class ProxyManagerPage(QWidget):
                 background-color: #415A77;
                 border: none;
                 border-radius: 8px;
-                padding: 10px;               
+                padding: 10px 16px;
+                font-weight: bold;           
             }
             QPushButton:hover {
                 background-color: #778DA9;
@@ -42,71 +45,138 @@ class ProxyManagerPage(QWidget):
                 padding: 6px;
                 color: white;                
             }
+            QComboBox:hover {
+                border: 1px solid #778DA9;               
+            }
+            QGroupBox {
+                border: 1px solid #415A77;
+                margin-top: 10px;
+                padding: 10px;               
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 8px 10px;
+                color: #E0E1DD;
+                font-weight: bold;
+            }
             QPushButton#backButton {
                 background-color: #415A77;
                 color: #E0E1DD;
-                border: none;
                 border-radius: 6px;
-                padding: 10px 20px;
-                font-size: 14px;               
+                padding: 10px 20px;              
             }
             QPushButton#backButton:hover {
                 background-color: #778DA9;               
             }
+            QHeaderView::section {
+                background-color: #1B263B;
+                color: #E0E1DD;
+                font-weight: bold;
+                border: none;               
+            }
+            QTableWidget {
+                background-color: #1B263B;
+                color: #E0E1DD;
+                gridline-color: #415A77;
+                border: 1px solid #415A77;               
+            }
+            QTableWidget::item:selected{
+                background-color: #778DA9;
+                color: #0D1B2A;               
+            }
         """)
 
-        layout = QVBoxLayout()
-
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+        
+        #Header
         title = QLabel("Proxy Manager")
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
+        title.setContentsMargins(0, 0, 0, 10)
+        main_layout.addWidget(title)
 
-        #input Field and group selector
-        input_layout = QHBoxLayout()
+        #Input Section
+        self.input_section = QGroupBox("Add / Manage Proxies")
+        input_layout = QGridLayout()
+        input_layout.setHorizontalSpacing(12)
+        input_layout.setVerticalSpacing(12)
 
+        #Add proxy section
+        input_layout.addWidget(QLabel("Proxy:"), 0, 0)
         self.proxy_input = QLineEdit()
-        self.proxy_input.setPlaceholderText("Enter proxy")
-        input_layout.addWidget(self.proxy_input)
+        self.proxy_input.setFixedWidth(250)
+        input_layout.addWidget(self.proxy_input, 0, 1)
 
+        input_layout.addWidget(QLabel("Group:"), 0, 2)
         self.group_select = QComboBox()
-        self.group_select.addItem("default") #place holder
-        input_layout.addWidget(self.group_select)
+        self.group_select.setFixedWidth(250)
+        input_layout.addWidget(self.group_select, 0, 3)
 
         self.add_button = QPushButton("Add Proxy")
-        input_layout.addWidget(self.add_button)
         self.add_button.clicked.connect(self.handle_add_proxy)
+        input_layout.addWidget(self.add_button, 0, 4)
 
-        layout.addLayout(input_layout)
-
-        #Create group
+        #Create/Remove Group
+        input_layout.addWidget(QLabel("New Group:"), 1, 0)
         self.group_input = QLineEdit()
-        self.group_input.setPlaceholderText("New group name")
-        input_layout.addWidget(self.group_input)
+        self.group_input.setFixedWidth(250)
+        input_layout.addWidget(self.group_input, 1, 1)
 
         self.create_group_button = QPushButton("Create Group")
         self.create_group_button.clicked.connect(self.handle_create_group)
-        input_layout.addWidget(self.create_group_button)
+        input_layout.addWidget(self.create_group_button, 1, 2)
 
-        #Remove group
         self.remove_button = QPushButton("Remove Group")
-        input_layout.addWidget(self.remove_button)
         self.remove_button.clicked.connect(self.handle_remove_group)
+        input_layout.addWidget(self.remove_button, 1, 3)
 
-        #Output log
+        self.input_section.setLayout(input_layout)
+        main_layout.addWidget(self.input_section)
+
+        #How logs will appear
+        self.log_section = QGroupBox("Proxy Log")
+        log_layout = QVBoxLayout()
+
+        self.status_label = QLabel("Status: Idle")
+        self.status_label.setStyleSheet("color: #E0E1DD; font-size: 12px;")
+        log_layout.addWidget(self.status_label)
+
         self.log_area = QTextEdit()
+        self.log_area.setMinimumHeight(120)
         self.log_area.setReadOnly(True)
         self.log_area.setPlaceholderText("Proxy logs appear here")
-        layout.addWidget(self.log_area)
+        log_layout.addWidget(self.log_area)
 
-        self.setLayout(layout)
-        self.load_groups()
+        self.log_section.setLayout(log_layout)
+        main_layout.addWidget(self.log_section)
 
-        #Back to home
+        #Proxy table section
+        self.proxy_table = QTableWidget()
+        self.proxy_table.setColumnCount(4)
+        self.proxy_table.setHorizontalHeaderLabels(["Proxy", "Ping", "Health", "Tags"])
+        self.proxy_table.horizontalHeader().setStretchLastSection(True)
+        self.proxy_table.setAlternatingRowColors(True)
+        main_layout.addWidget(self.proxy_table)
+
+        #spacer(home button always at the bottom)
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        main_layout.addItem(spacer)
+
+        #Back to home button
         self.back_button = QPushButton("Back to Home")
         self.back_button.setObjectName("backButton")
         self.back_button.clicked.connect(lambda: self.switch_page_callback("home"))
-        layout.addWidget(self.back_button)
+        main_layout.addWidget(self.back_button)
+
+        self.setLayout(main_layout)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+        self.load_groups()
+
+        self.group_select.currentIndexChanged.connect(self.update_proxy_table)
 
     def load_groups(self):
         print("Called load_groups()")
@@ -114,6 +184,8 @@ class ProxyManagerPage(QWidget):
         self.group_select.clear()
         for group in self.proxy_manager.proxylist.get("Groups", []):
             self.group_select.addItem(group["group_name"])
+        
+        self.update_proxy_table()
     
     @asyncSlot()
     async def handle_add_proxy(self):
@@ -172,3 +244,22 @@ class ProxyManagerPage(QWidget):
             self.load_groups()
         else:
             self.log_area.append(f"Failed to remove group '{group}'.")
+
+    def display_proxies_for_group(self, group_name):
+        proxies = []
+        for group in self.proxy_manager.proxylist.get("Groups", []):
+            if group["group_name"] == group_name:
+                proxies = group.get("proxies", [])
+                break
+
+        self.proxy_table.setRowCount(len(proxies))
+        for i, proxy_data in enumerate(proxies):
+            self.proxy_table.setItem(i, 0, QTableWidgetItem(proxy_data.get("proxy", "")))
+            self.proxy_table.setItem(i, 1, QTableWidgetItem(str(proxy_data.get("last_checked_ping", "N/A"))))
+            self.proxy_table.setItem(i, 2, QTableWidgetItem(str(proxy_data.get("healthscore", "N/A"))))
+            self.proxy_table.setItem(i, 3, QTableWidgetItem(", ".join(proxy_data.get("tags", []))))
+
+    def update_proxy_table(self):
+        selected_group = self.group_select.currentText()
+        if selected_group:
+            self.display_proxies_for_group(selected_group)
