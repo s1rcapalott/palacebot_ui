@@ -161,6 +161,11 @@ class ProxyManagerPage(QWidget):
         self.proxy_table.setAlternatingRowColors(True)
         main_layout.addWidget(self.proxy_table)
 
+        #Remove button
+        self.test_button = QPushButton("Test Proxies")
+        self.test_button.clicked.connect(self.handle_test_proxies)
+        input_layout.addWidget(self.test_button, 1, 4)
+
         #spacer(home button always at the bottom)
         spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         main_layout.addItem(spacer)
@@ -186,6 +191,25 @@ class ProxyManagerPage(QWidget):
             self.group_select.addItem(group["group_name"])
         
         self.update_proxy_table()
+
+    def display_proxies_for_group(self, group_name):
+        proxies = []
+        for group in self.proxy_manager.proxylist.get("Groups", []):
+            if group["group_name"] == group_name:
+                proxies = group.get("proxies", [])
+                break
+
+        self.proxy_table.setRowCount(len(proxies))
+        for i, proxy_data in enumerate(proxies):
+            self.proxy_table.setItem(i, 0, QTableWidgetItem(proxy_data.get("proxy", "")))
+            self.proxy_table.setItem(i, 1, QTableWidgetItem(str(proxy_data.get("last_checked_ping", "N/A"))))
+            self.proxy_table.setItem(i, 2, QTableWidgetItem(str(proxy_data.get("healthscore", "N/A"))))
+            self.proxy_table.setItem(i, 3, QTableWidgetItem(", ".join(proxy_data.get("tags", []))))
+
+    def update_proxy_table(self):
+        selected_group = self.group_select.currentText()
+        if selected_group:
+            self.display_proxies_for_group(selected_group)
     
     @asyncSlot()
     async def handle_add_proxy(self):
@@ -245,21 +269,27 @@ class ProxyManagerPage(QWidget):
         else:
             self.log_area.append(f"Failed to remove group '{group}'.")
 
-    def display_proxies_for_group(self, group_name):
+    @asyncSlot()
+    async def handle_test_proxies(self):
+        group = self.group_select.currentText().strip()
+        if not group:
+            self.log_area.append("Please select a group to test.")
+            return
+        
+        self.log_area.append(f"Testing proxies in group '{group}'...")
+        self.status_label.setText("Status: Testing...")
+
         proxies = []
-        for group in self.proxy_manager.proxylist.get("Groups", []):
-            if group["group_name"] == group_name:
-                proxies = group.get("proxies", [])
+        for g in self.proxy_manager.proxylist.get("Groups", []):
+            if g["group_name"] == group:
+                proxies = g.get("proxies", [])
                 break
+        
+        for proxy in proxies:
+            result = await self.proxy_manager.ping_proxy(proxy["proxy"])
+            proxy["last_checked_ping"] = result.get("ping", "N/A")
+            proxy["healthscore"] = result.get("healthscore", "N/A")
 
-        self.proxy_table.setRowCount(len(proxies))
-        for i, proxy_data in enumerate(proxies):
-            self.proxy_table.setItem(i, 0, QTableWidgetItem(proxy_data.get("proxy", "")))
-            self.proxy_table.setItem(i, 1, QTableWidgetItem(str(proxy_data.get("last_checked_ping", "N/A"))))
-            self.proxy_table.setItem(i, 2, QTableWidgetItem(str(proxy_data.get("healthscore", "N/A"))))
-            self.proxy_table.setItem(i, 3, QTableWidgetItem(", ".join(proxy_data.get("tags", []))))
-
-    def update_proxy_table(self):
-        selected_group = self.group_select.currentText()
-        if selected_group:
-            self.display_proxies_for_group(selected_group)
+        self.status_label.setText("Status: Idle")
+        self.log_area.append("Proxy testing complete.")
+        self.display_proxies_for_group(group)
