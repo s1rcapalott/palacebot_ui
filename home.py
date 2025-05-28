@@ -1,6 +1,7 @@
 import sys
 import asyncio
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+from qasync import QEventLoop
 from home_page import HomePage
 from task_manager_page import TaskManagerPage
 from proxy_manager_page import ProxyManagerPage
@@ -54,6 +55,11 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    loop = QEventLoop(app)
+    asyncio.set_event_loop(loop)
+
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+
+    with loop:
+        sys.exit(loop.run_forever())

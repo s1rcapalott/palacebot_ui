@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from qasync import asyncSlot
 import asyncio
 import threading
 
@@ -114,7 +115,8 @@ class ProxyManagerPage(QWidget):
         for group in self.proxy_manager.proxylist.get("Groups", []):
             self.group_select.addItem(group["group_name"])
     
-    def handle_add_proxy(self):
+    @asyncSlot()
+    async def handle_add_proxy(self):
         proxy = self.proxy_input.text().strip()
         group = self.group_select.currentText().strip()
 
@@ -124,17 +126,15 @@ class ProxyManagerPage(QWidget):
         
         self.log_area.append(f"Adding proxy '{proxy}' to group '{group}'...")
 
-        async def add_and_log():
-            result = await self.proxy_manager.add_proxy(proxy, group)
-            if result:
-                self.log_area.append(f"Proxy added successfully.")
-                self.proxy_input.clear()
-            else:
-                self.log_area.append(f"Failed to add proxy")
+        result = await self.proxy_manager.add_proxy(proxy, group)
+        if result:
+            self.log_area.append("Proxy added successfully.")
+            self.proxy_input.clear()
+        else:
+            self.log_area.append("Failed to add proxy.")
 
-        asyncio.run(add_and_log())
-
-    def handle_create_group(self):
+    @asyncSlot()
+    async def handle_create_group(self):
         group_name = self.group_input.text().strip()
         if not group_name:
             self.log_area.append("Please enter a group name.")
@@ -142,21 +142,16 @@ class ProxyManagerPage(QWidget):
         
         self.log_area.append(f"Creating group '{group_name}'...")
 
-        async def create_and_refresh():
-            result = await self.proxy_manager.create_group(group_name)
-            if result:
-                self.log_area.append(f"Group '{group_name}' created sucessfully.")
-                self.load_groups()
-                self.group_input.clear()
-            else:
-                self.log_area.append(f"Failed to create group '{group_name}'.")
-
-        async def wrapper():
-            await create_and_refresh()
-        
-        asyncio.run(wrapper())
+        result = await self.proxy_manager.create_group(group_name)
+        if result:
+            self.log_area.append(f"Group '{group_name}' created successfully.")
+            self.load_groups()
+            self.group_input.clear()
+        else:
+            self.log_area.append(f"Failed to create group '{group_name}'.")
     
-    def handle_remove_group(self):
+    @asyncSlot()
+    async def handle_remove_group(self):
         group = self.group_select.currentText().strip()
 
         if not group:
@@ -169,12 +164,11 @@ class ProxyManagerPage(QWidget):
         
         self.log_area.append(f"Removing group '{group}'...")
 
-        async def remove_and_refresh():
-            removed = await self.proxy_manager.delete_group(group)
-            if removed:
-                self.log_area.append(f"Group '{group}' removed.")
-                self.load_groups()
-            else:
-                self.log_area.append(f"Failed to remove group '{group}'.")
-
-        run_async_task(remove_and_refresh())
+        print("Calling delete_group now...")
+        removed = await self.proxy_manager.delete_group(group)
+        print(f"Result of delete_group: {removed}")
+        if removed:
+            self.log_area.append(f"Group '{group}' removed.")
+            self.load_groups()
+        else:
+            self.log_area.append(f"Failed to remove group '{group}'.")
