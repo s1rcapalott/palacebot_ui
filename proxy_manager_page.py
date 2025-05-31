@@ -214,6 +214,8 @@ class ProxyManagerPage(QWidget):
         
         self.log_area.append(f"Creating group '{group_name}'...")
 
+        print("create_group is:", self.proxy_manager.creat_group)
+
         result = await self.proxy_manager.create_group(group_name)
         if result:
             self.log_area.append(f"Group '{group_name}' created successfully.")

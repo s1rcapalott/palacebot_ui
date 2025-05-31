@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
 
         #Backend logic
         self.proxy_manager = Proxy_Manager(proxy_file=r"C:\Users\mmira\Shoe-Palace-Bot-1\proxy.json")
-        asyncio.run(self.proxy_manager.load_proxies())
+        self.proxy_manager.load_proxies()
 
         #Pages
         self.home_page = HomePage(self.switch_page)
