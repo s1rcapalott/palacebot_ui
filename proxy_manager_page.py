@@ -136,6 +136,11 @@ class ProxyManagerPage(QWidget):
         self.input_section.setLayout(input_layout)
         main_layout.addWidget(self.input_section)
 
+        #Test proxies button
+        self.test_button = QPushButton("Test Proxies")
+        self.test_button.clicked.connect(lambda: run_async_task(self.handle_test_proxies()))
+        input_layout.addWidget(self.test_button, 1, 4)
+
         #How logs will appear
         self.log_section = QGroupBox("Proxy Log")
         log_layout = QVBoxLayout()
@@ -246,6 +251,30 @@ class ProxyManagerPage(QWidget):
             self.load_groups()
         else:
             self.log_area.append(f"Failed to remove group '{group}'.")
+
+    @asyncSlot()
+    async def handle_test_proxies(self):
+        group = self.group_select.currentText().strip()
+        if not group:
+            self.log_area.append("Please select a group to test.")
+            return
+        
+        self.log_area.append(f"Testing proxies in group '{group}'...")
+        proxies = []
+        for g in self.proxy_manager.proxylist.get("Groups", []):
+            if g["group_name"] == group:
+                proxies = g.get("proxies", [])
+                break
+            if not proxies:
+                self.log_area.append(f"No proxies found in group '{group}'.")
+                return
+
+            for proxy in proxies:
+                result = await self.proxy_manager.ping_proxy(proxy["proxy"])
+                if result["success"]:
+                    self.log_area.append(f"{proxy['proxy']} is working (Ping: {result['ping']}s)")
+                else:
+                    self.log_area.append(f"{proxy['proxy']} failed to respond.")
 
     def display_proxies_for_group(self, group_name):
         proxies = []

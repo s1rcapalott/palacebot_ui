@@ -1,6 +1,7 @@
 import sys
 import asyncio
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+from PyQt6.QtCore import QTimer
 from qasync import QEventLoop
 from home_page import HomePage
 from task_manager_page import TaskManagerPage
@@ -24,7 +25,7 @@ class MainWindow(QMainWindow):
 
         #Backend logic
         self.proxy_manager = Proxy_Manager(proxy_file=r"C:\Users\mmira\Shoe-Palace-Bot-1\proxy.json")
-        self.proxy_manager.load_proxies()
+        print("Proxy file path:", self.proxy_manager.proxy_file)
 
         #Pages
         self.home_page = HomePage(self.switch_page)
@@ -47,6 +48,12 @@ class MainWindow(QMainWindow):
             "billing": 3,
             "accounts": 4
         }
+
+        QTimer.singleShot(0, lambda: asyncio.create_task(self.initialize_async()))
+
+    async def initialize_async(self):
+        await self.proxy_manager.load_proxies()
+        self.proxy_page.load_groups()
 
     def switch_page(self, page_name):
         if page_name in self.page_map:
