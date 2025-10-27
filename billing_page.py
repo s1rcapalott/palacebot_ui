@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QPushButton, QVBpxLayout, QHBoxLayout, QPushButton,
-    QFrame, QGroupBox, QGridLayout, QLineEdit, QComboBox, 
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
+    QFrame, QGroupBox, QGridLayout, QLineEdit, QComboBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QScrollArea
 )
 from PyQt6.QtGui import QFont
@@ -10,9 +10,9 @@ class BillingPage(QWidget):
     def __init__(self, switch_page_callback):
         super().__init__()
         self.switch_page_callback = switch_page_callback
-
-        self.profiles = []
         
+        self.profiles = []  # Store billing profiles
+
         self.setStyleSheet("""
             QWidget {
                 background-color: #0a0e14;
@@ -200,11 +200,11 @@ class BillingPage(QWidget):
             }
         """)
 
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # === TOP NAVIGATION BAR === #
+        # === TOP NAVIGATION BAR ===
         nav_bar = QFrame()
         nav_bar.setObjectName("navBar")
         nav_bar.setFixedHeight(60)
@@ -232,42 +232,42 @@ class BillingPage(QWidget):
             nav_btn = QPushButton(btn_text)
             nav_btn.setObjectName("navButton")
             nav_btn.setCheckable(True)
-            if btn_text == "Billing":
+            if btn_text == "Billing":  # Billing is active
                 nav_btn.setChecked(True)
             if page_key:
                 nav_btn.clicked.connect(lambda checked, pk=page_key: self.switch_page_callback(pk))
             nav_bar_layout.addWidget(nav_btn)
-            
+
         nav_bar_layout.addStretch()
-        
+
         # Right side buttons
         import_btn = QPushButton("Import")
         import_btn.setObjectName("actionButton")
         nav_bar_layout.addWidget(import_btn)
-        
-        export_btn = QPushButton("Import")
+
+        export_btn = QPushButton("Export")
         export_btn.setObjectName("actionButton")
         nav_bar_layout.addWidget(export_btn)
-        
-        main_layout.adWidget(nav_bar)
-        
-        # == CONTENT AREA ==
+
+        main_layout.addWidget(nav_bar)
+
+        # === CONTENT AREA ===
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(20, 20, 20, 20)
         content_layout.setSpacing(20)
-        
+
         # Title
-        title = QLabel("Profile Name:")
+        title = QLabel("Billing Profiles")
         title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
         content_layout.addWidget(title)
-        
+
         # === CREATE PROFILE SECTION ===
         create_section = QGroupBox("Create Billing Profile")
         create_layout = QGridLayout()
         create_layout.setHorizontalSpacing(15)
         create_layout.setVerticalSpacing(12)
-        
+
         # Profile Name
         name_label = QLabel("Profile Name:")
         name_label.setObjectName("fieldLabel")
@@ -518,5 +518,3 @@ class BillingPage(QWidget):
         if 0 <= row < len(self.profiles):
             self.profiles.pop(row)
             self.update_profiles_table()
-        
-        self.setLayout(layout)
