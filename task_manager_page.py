@@ -221,7 +221,7 @@ class TaskManagerPage(QWidget):
         nav_bar_layout.addWidget(brand_label)
 
         # Navigation tabs
-        nav_buttons = ["Tasks", "Proxies", "Billing", "Accounts", "Rates", "Settings"]
+        nav_buttons = ["Tasks", "Proxies", "Billing", "Accounts", "Settings"]
         for i, btn_text in enumerate(nav_buttons):
             nav_btn = QPushButton(btn_text)
             nav_btn.setObjectName("navButton")

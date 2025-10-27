@@ -213,7 +213,7 @@ class BillingPage(QWidget):
         nav_bar_layout.setSpacing(0)
 
         # Logo/Brand
-        brand_label = QLabel("🌐 Cybersole")
+        brand_label = QLabel("Palace")
         brand_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         brand_label.setStyleSheet("color: #00d9ff; padding: 0 20px 0 0;")
         nav_bar_layout.addWidget(brand_label)
@@ -224,7 +224,6 @@ class BillingPage(QWidget):
             ("Proxies", "proxies"),
             ("Billing", "billing"),
             ("Accounts", "accounts"),
-            ("Rates", None),
             ("Settings", None)
         ]
         

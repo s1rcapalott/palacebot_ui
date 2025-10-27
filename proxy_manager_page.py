@@ -252,7 +252,6 @@ class ProxyManagerPage(QWidget):
             ("Proxies", "proxies"),
             ("Billing", "billing"),
             ("Accounts", "accounts"),
-            ("Rates", None),
             ("Settings", None)
         ]
         
