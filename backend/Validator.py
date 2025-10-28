@@ -302,21 +302,51 @@ class Validator:
     #^clean the above functions because some can forsure be reused as they are essentially the same thing
 
     #below this section we will clean the user input 
+    def detect_proxy_format(self, proxy_str):
+        proxy_str = proxy_str.strip()
+        # Check if it starts with a protocol
+        if proxy_str.startswith(('http://', 'https://', 'socks5://')):
+            return 'url'
+        else:
+            return 'colon'
+    
+    def convert_colon_to_url(self, proxy_str):
+        parts = proxy_str.strip().split(':')
+        if len(parts) == 4:
+            host, port, username, password = parts
+            return f"http://{username}:{password}@{host}:{port}"
+        elif len(parts) == 2:
+            ip, port = parts
+            return f"socks5://{ip}:{port}"
+        else:
+            self.logger.error("Invalid colon-separated proxy format.")
+            return None
 
     def validate_proxy_format(self, proxy_str):
         """
     Validates a proxy string like:
-    http://user:pass@ip:port OR socks5://ip:port
+    http://user:pass@ip:port OR colon-separated format ip:port or ip:port:user:pass
 
     Returns True if valid, False otherwise.
     """
+        format = self.detect_proxy_format(proxy_str)
+        if format == 'colon':
+            proxy_str = self.convert_colon_to_url(proxy_str)
+            if not proxy_str:
+                self.logger.error("Invalid colon-separated proxy format.")
+                return False
+
         pattern = re.compile(
             r"^(http|https|socks5)://"                    # scheme
-            r"(?:(?:\w+:\w+)@)?"                          # optional user:pass@
-            r"(?:\d{1,3}\.){3}\d{1,3}"                    # IP address
-            r":\d{2,5}$"                                  # port
+            r"(?:(?:[\w\-\.]+:[\w\-\.]+)@)?"              # optional user:pass@
+            r"([\w\-\.]+)"                                # IP address
+            r":(\d{2,5})$"                                # port
         )
-        return bool(pattern.match(proxy_str.strip()))
+        if pattern.match(proxy_str.strip()):
+            return proxy_str
+        else:
+            self.logger.error("Invalid proxy format.")
+            return False
 
     @staticmethod
     def check_for_file(file):# use this function to check if all the files for the application exist.
