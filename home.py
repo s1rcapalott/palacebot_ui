@@ -11,7 +11,7 @@ from accounts_page import AccountsPage
 
 #Connected the backend
 sys.path.append(r"C:\Users\mmira\Shoe-Palace-Bot-1")
-from proxy import Proxy_Manager
+from backend.proxy import Proxy_Manager
 
 class MainWindow(QMainWindow):
     def __init__(self):
