@@ -495,9 +495,21 @@ class ProxyManagerPage(QWidget):
             result = await self.proxy_manager.ping_proxy(proxy["proxy"])
             if result["success"]:
                 self.log_area.append(f"✅ {proxy['proxy']} - Working (Ping: {result['ping']}ms)")
+                await self.proxy_manager.update_proxy_stats(proxy['proxy'], group, status = "success")
+                
+                for g in self.proxy_manager.proxylist["Groups"]:
+                    if g["group_name"] == group:
+                        for p in g["proxies"]:
+                            if p["proxy"] == proxy["proxy"]:
+                                p["last_checked_ping"] = result["ping"]
+                                break
             else:
                 self.log_area.append(f"❌ {proxy['proxy']} - Failed to respond")
+                await self.proxy_manager.update_proxy_stats(proxy['proxy'], group, status = "fail")
         
+        await self.proxy_manager.save_proxies()
+        self.update_proxy_table()
+        self.log_area.append(f"✅ Testing complete for group '{group}'.")
         self.status_label.setText("● Status: Testing complete")
 
     def display_proxies_for_group(self, group_name):

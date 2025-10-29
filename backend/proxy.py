@@ -303,10 +303,14 @@ class Proxy_Manager:
                             if proxy["fail_count"] >= auto_blacklist_threshold:
                                 proxy["blacklisted"] = True
                                 self.logger.warning(f"Proxy {proxy_str} blacklisted.")
-                        success = proxy.get("success_count", 1)
+                        success = proxy.get("success_count", 0)
                         fail = proxy.get("fail_count", 0)
                         total = success + fail
-                        proxy["healthscore"] = max(0, min(health_max, int((success / total) * 100)))
+                        
+                        if total >0:
+                            proxy["healthscore"] = max(0, min(health_max, int((success / total) * 100)))
+                        else:
+                            proxy["healthscore"] = 0
                         await self.save_proxies()
                         return True
         self.logger.error(f"Proxy '{proxy_str}' not found in group '{group_name}'.")
