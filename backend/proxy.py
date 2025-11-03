@@ -430,6 +430,105 @@ class Proxy_Manager:
                 "ping": None,
                 "healthscore": 0
             }
+    async def add_tag_to_proxy(self,proxy_str, group_name,tag):
+        """Add a tag to a proxy for better organization."""
+        for group in self.proxylist["Groups"]:
+            if group["group_name"] == group_name:
+                for proxy in group["proxies"]:
+                    if proxy.get("proxy") == proxy_str:
+                        tags = proxy.get("tags", [])
+                        if tag not in tags:
+                            tags.append(tag)
+                            proxy["tags"] = tags
+                            await self.save_proxies()
+                            self.logger.info(f"Added tag '{tag}' to proxy '{proxy_str}' in group '{group_name}'.")
+                            return True
+                        else:
+                            self.logger.warning(f"Proxy '{proxy_str}' already has tag '{tag}'.")
+                            return False
+        self.logger.error(f"Proxy '{proxy_str}' not found in group '{group_name}'.")
+        return False
 
+    async def remove_tag_from_proxy(self,proxy_str, group_name,tag):
+        """Remove a tag from a proxy."""
+        for group in self.proxylist["Groups"]:
+            if group["group_name"] == group_name:
+                for proxy in group["proxies"]:
+                    if proxy.get("proxy") == proxy_str:
+                        tags = proxy.get("tags", [])
+                        if tag in tags:
+                            tags.remove(tag)
+                            proxy["tags"] = tags
+                            await self.save_proxies()
+                            self.logger.info(f"Removed tag '{tag}' from proxy '{proxy_str}' in group '{group_name}'.")
+                            return True
+                        else:
+                            self.logger.warning(f"Proxy '{proxy_str}' does not have tag '{tag}'.")
+                            return False
+        self.logger.error(f"Proxy '{proxy_str}' not found in group '{group_name}'.")
+        return False
+    
+    async def add_note_to_proxy(self,proxy_str, group_name,note):
+        """Add a note to a proxy for better context."""
+        for group in self.proxylist["Groups"]:
+            if group["group_name"] == group_name:
+                for proxy in group["proxies"]:
+                    if proxy.get("proxy") == proxy_str:
+                        proxy["note"] = note
+                        await self.save_proxies()
+                        self.logger.info(f"Added note to proxy '{proxy_str}' in group '{group_name}'.")
+                        return True
+        self.logger.error(f"Proxy '{proxy_str}' not found in group '{group_name}'.")
+        return False
+    
+    async def remove_note_from_proxy(self,proxy_str, group_name):
+        """Remove a note from a proxy."""
+        for group in self.proxylist["Groups"]:
+            if group["group_name"] == group_name:
+                for proxy in group["proxies"]:
+                    if proxy.get("proxy") == proxy_str:
+                        if "note" in proxy:
+                            del proxy["note"]
+                            await self.save_proxies()
+                            self.logger.info(f"Removed note from proxy '{proxy_str}' in group '{group_name}'.")
+                            return True
+                        else:
+                            self.logger.warning(f"Proxy '{proxy_str}' has no note to remove.")
+                            return False
+        self.logger.error(f"Proxy '{proxy_str}' not found in group '{group_name}'.")
+        return False
+    
+    async def suggest_tags(self,proxy_data):
+        """Suggest tags based on proxy attributes."""
+        suggestions = []
+        
+        healthscore = proxy_data.get("healthscore", 0)
+        ping = proxy_data.get("last_checked_ping",0)
+        usage_count = proxy_data.get("usage_count",0)
+        
+        if usage_count > 4:
+            if healthscore >= 80:
+                suggestions.append("High Performance")
+            elif healthscore >= 50:
+                suggestions.append("Medium Performance")
+            else:
+                suggestions.append("Low Performance")
+        
+        if ping > 0:
+            if ping < 500:
+                suggestions.append("fast")
+            elif ping < 1000:
+                suggestions.append("medium-speed")
+            elif ping > 2000:
+                suggestions.append("slow")
+        
+        if usage_count > 100:
+            suggestions.append("Frequently Used")
+        elif usage_count > 50:
+            suggestions.append("Moderately Used")
+        else:
+            suggestions.append("Rarely Used")
+
+        return suggestions
 
     
