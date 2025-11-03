@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.stack)
 
         #Backend logic
-        self.proxy_manager = Proxy_Manager(proxy_file=r"C:\Users\mmira\Shoe-Palace-Bot-1\proxy.json")
+        self.proxy_manager = Proxy_Manager(proxy_file="proxy.json")
         print("Proxy file path:", self.proxy_manager.proxy_file)
 
         #Pages

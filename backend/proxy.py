@@ -55,17 +55,19 @@ class Proxy_Manager:
         return True
 
     async def add_proxy(self, proxy_str, group_name):
-        if not self.validator.validate_proxy_format(proxy_str):
+        validated_proxy = self.validator.validate_proxy_format(proxy_str)
+        if not validated_proxy:
             self.logger.error(f"Invalid proxy format: {proxy_str}")
             return False
+        
         for group in self.proxylist["Groups"]:
             if group["group_name"] == group_name:
                 for proxy in group["proxies"]:
-                    if proxy.get("proxy") == proxy_str:
-                        self.logger.warning(f"Proxy '{proxy_str}' already exists in group '{group_name}'.")
+                    if proxy.get("proxy") == validated_proxy:
+                        self.logger.warning(f"Proxy '{validated_proxy}' already exists in group '{group_name}'.")
                         return False
                 group["proxies"].append({
-                    "proxy": proxy_str,
+                    "proxy": validated_proxy,
                     "last_checked_ping": 0,
                     "healthscore": 0,
                     "usage_count": 0,
@@ -301,10 +303,14 @@ class Proxy_Manager:
                             if proxy["fail_count"] >= auto_blacklist_threshold:
                                 proxy["blacklisted"] = True
                                 self.logger.warning(f"Proxy {proxy_str} blacklisted.")
-                        success = proxy.get("success_count", 1)
+                        success = proxy.get("success_count", 0)
                         fail = proxy.get("fail_count", 0)
                         total = success + fail
-                        proxy["healthscore"] = max(0, min(health_max, int((success / total) * 100)))
+                        
+                        if total >0:
+                            proxy["healthscore"] = max(0, min(health_max, int((success / total) * 100)))
+                        else:
+                            proxy["healthscore"] = 0
                         await self.save_proxies()
                         return True
         self.logger.error(f"Proxy '{proxy_str}' not found in group '{group_name}'.")
@@ -410,12 +416,20 @@ class Proxy_Manager:
             return True
         
     async def ping_proxy(self, proxy_string):
-        await asyncio.sleep(0.2)
-        return {
-            "ping": round(random.uniform(0.1, 1.0), 2),
-            "healthscore": random.randint(50, 100)
-        }
-    
-    
-    
+        """Ping a proxy and return results for GUI. Used by proxy_manager_page."""
+        result = await self.ping(proxy_string)
+        if result:
+            return {
+                "success": True,
+                "ping": round(result * 1000, 2),  # Convert seconds to milliseconds
+                "healthscore": 100  # New proxy, assume healthy
+            }
+        else:
+            return {
+                "success": False,
+                "ping": None,
+                "healthscore": 0
+            }
+
+
     
