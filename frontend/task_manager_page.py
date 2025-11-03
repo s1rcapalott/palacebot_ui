@@ -6,6 +6,13 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon
 
+"""
+    TODO List:
+    - Add backend connection
+    - nothing works all looks
+    - 
+"""
+
 class TaskManagerPage(QWidget):
     def __init__(self, switch_page_callback):
         super().__init__()
