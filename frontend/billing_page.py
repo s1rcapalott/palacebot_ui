@@ -6,6 +6,27 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 
+# Reviewed Billing Page:
+"""
+    TODO List:
+    - Add load_profiles and save_profiles
+    - Add storage_path
+    - Call loaded profiles
+    - Call save profiles
+    
+    Important:
+    - Add card/cvv number encryption
+    - Add get_profile for bot
+    - Add get all profile method for tasks page dropdown
+    
+    Less Important
+    - Add card, phone number validation
+    - Add duplicate profile name check
+    - Implement edit button functionality
+    
+    
+"""
+
 class BillingPage(QWidget):
     def __init__(self, switch_page_callback):
         super().__init__()

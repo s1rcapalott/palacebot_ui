@@ -9,6 +9,21 @@ from PyQt6.QtCore import Qt
 import json
 import os
 
+# Reviewed Accounts page:
+"""
+    TODO List:
+    - Encrypt passwords
+    - Don't expose password length, but also possibly add a view button
+    - Add file locking
+    - Add Backup
+    
+    Less important:
+    - Email validation - check email format and if it is valid
+    - Export to CSV
+    - Undo delete - store deleted accounts temporarily
+    
+""" 
+
 class AccountsPage(QWidget):
     def __init__(self, switch_page_callback):
         super().__init__()

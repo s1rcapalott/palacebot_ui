@@ -3,11 +3,11 @@ import asyncio
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from PyQt6.QtCore import QTimer
 from qasync import QEventLoop
-from home_page import HomePage
-from task_manager_page import TaskManagerPage
-from proxy_manager_page import ProxyManagerPage
-from billing_page import BillingPage
-from accounts_page import AccountsPage
+from frontend.home_page import HomePage
+from frontend.task_manager_page import TaskManagerPage
+from frontend.proxy_manager_page import ProxyManagerPage
+from frontend.billing_page import BillingPage
+from frontend.accounts_page import AccountsPage
 
 #Connected the backend
 sys.path.append(r"C:\Users\mmira\Shoe-Palace-Bot-1")
