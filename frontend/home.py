@@ -1,15 +1,22 @@
 import sys
+import os
 import asyncio
+
+# Add parent directory to path so imports work
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from PyQt6.QtCore import QTimer
 from qasync import QEventLoop
-from frontend.home_page import HomePage
-from frontend.task_manager_page import TaskManagerPage
-from frontend.proxy_manager_page import ProxyManagerPage
-from frontend.billing_page import BillingPage
-from frontend.accounts_page import AccountsPage
 
-#Connected the backend
+# Import frontend pages (they're in same folder as this file)
+from home_page import HomePage
+from task_manager_page import TaskManagerPage
+from proxy_manager_page import ProxyManagerPage
+from billing_page import BillingPage
+from accounts_page import AccountsPage
+
+# Import backend
 from backend.proxy import Proxy_Manager
 
 class MainWindow(QMainWindow):
