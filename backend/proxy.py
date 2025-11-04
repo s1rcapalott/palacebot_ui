@@ -74,7 +74,10 @@ class Proxy_Manager:
                     "fail_count": 0,
                     "success_count": 0,
                     "blacklisted": False,
-                    "last_used_timestamp": 0
+                    "last_used_timestamp": 0,
+                    "stage_stats": {},
+                    "tags": [],
+                    "notes": ""
                 })
                 await self.save_proxies()
                 self.logger.info(f"Added proxy '{proxy_str}' to group '{group_name}'.")
@@ -505,6 +508,9 @@ class Proxy_Manager:
         healthscore = proxy_data.get("healthscore", 0)
         ping = proxy_data.get("last_checked_ping",0)
         usage_count = proxy_data.get("usage_count",0)
+        if usage_count == 0:
+            suggestions.append("untested proxy")
+            return suggestions
         
         if usage_count > 4:
             if healthscore >= 80:
