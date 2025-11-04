@@ -10,7 +10,6 @@ from frontend.billing_page import BillingPage
 from frontend.accounts_page import AccountsPage
 
 #Connected the backend
-sys.path.append(r"C:\Users\mmira\Shoe-Palace-Bot-1")
 from backend.proxy import Proxy_Manager
 
 class MainWindow(QMainWindow):
