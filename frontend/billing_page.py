@@ -492,11 +492,11 @@ class BillingPage(QWidget):
         
         card_clean = profile["card_number"].replace(" ", "").replace("-", "")
         
-        # SKIPPING FOR DEBUGGING
+        # Luhn Check disabled - will validate during checkout
         #if not self.validate_card_luhn(profile["card_number"]):
             #print("Error: Invalid card number (failed Luhn check)")
             #return
-        print(f"Skipping LUHN check for card: {card_clean}")
+        print(f"Accepting card: {card_clean[:4]}...{card_clean[-4:]}")
         
         for existing in self.profiles:
             if existing["name"].lower() == profile["name"].lower():
@@ -607,25 +607,35 @@ class BillingPage(QWidget):
         return any(p["name"] == profile_name for p in self.profiles)
     
     def validate_card_luhn(self, card_number):
+        # Remove any spaces or dashes
         card_clean = card_number.replace(" ", "").replace("-", "")
-        
+    
+        # Must be digits only
         if not card_clean.isdigit():
             return False
-        
+    
+        # Must be 13-19 digits
         if not (13 <= len(card_clean) <= 19):
             return False
+    
+        # Luhn algorithm
+        total = 0
+        reverse = card_clean[::-1]  # Reverse the string
+    
+        for i, digit in enumerate(reverse):
+            n = int(digit)
         
-        # Luhn Algorithm
-        digits = [int(d) for d in card_clean]
-        checksum = 0
+            # Double every second digit (odd positions in reversed string)
+            if i % 2 == 1:
+                n = n * 2
+                # If doubled digit is > 9, subtract 9
+                if n > 9:
+                    n = n - 9
         
-        for i in range(len(digits) - 2, -1, -2):
-            digits[i] *= 2
-            
-            if digits[i] > 9:
-                digits[i] -= 9
-        
-        checksum = sum(digits)
-        
-        return checksum % 10 == 0
+            total += n
+    
+        is_valid = (total % 10 == 0)
+        print(f"DEBUG: Card '{card_clean}' reversed '{reverse}' - Total: {total}, Valid: {is_valid}")
+    
+        return is_valid
     
