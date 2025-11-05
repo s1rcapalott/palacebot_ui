@@ -505,7 +505,7 @@ class ProxyManagerPage(QWidget):
                                 break
             else:
                 self.log_area.append(f"❌ {proxy['proxy']} - Failed to respond")
-                await self.proxy_manager.update_proxy_stats(proxy['proxy'], group, status = "fail")
+                self.proxy_manager.update_proxy_stats(proxy['proxy'], group, status = "fail")
         
         await self.proxy_manager.save_proxies()
         self.update_proxy_table()
@@ -531,7 +531,13 @@ class ProxyManagerPage(QWidget):
             health_item = QTableWidgetItem(str(health) if health != "N/A" else "N/A")
             self.proxy_table.setItem(i, 2, health_item)
             
-            tags = ", ".join(proxy_data.get("tags", []))
+            existing_tags = proxy_data.get("tags", [])
+            if not existing_tags:
+    
+                suggestions = self.proxy_manager.suggest_tags(proxy_data)
+                tags = ", ".join(suggestions) if suggestions else "No tags"
+            else:
+                tags = ", ".join(existing_tags)
             self.proxy_table.setItem(i, 3, QTableWidgetItem(tags if tags else "No tags"))
             
             self.proxy_table.setRowHeight(i, 45)
