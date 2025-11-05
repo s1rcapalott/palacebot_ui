@@ -501,7 +501,7 @@ class Proxy_Manager:
         self.logger.error(f"Proxy '{proxy_str}' not found in group '{group_name}'.")
         return False
     
-    async def suggest_tags(self,proxy_data):
+    def suggest_tags(self,proxy_data):
         """Suggest tags based on proxy attributes."""
         suggestions = []
         
@@ -513,20 +513,30 @@ class Proxy_Manager:
             return suggestions
         
         if usage_count > 4:
-            if healthscore >= 80:
-                suggestions.append("High Performance")
-            elif healthscore >= 50:
-                suggestions.append("Medium Performance")
+           if healthscore >= 80:
+            # High health, but check speed too
+            if ping > 0 and ping < 1000:
+                suggestions.append("High Performance")  # Healthy AND fast
+            elif ping >= 1000 and ping < 2000:
+                suggestions.append("Reliable")  # Healthy but medium speed
+            elif ping >= 2000:
+                suggestions.append("Reliable but Slow")  # Healthy but slow
             else:
-                suggestions.append("Low Performance")
+                suggestions.append("High Performance")  # No ping data, assume good
+        elif healthscore >= 50:
+            suggestions.append("Medium Performance")
+        else:
+            suggestions.append("Low Performance")
         
         if ping > 0:
             if ping < 500:
                 suggestions.append("fast")
             elif ping < 1000:
                 suggestions.append("medium-speed")
-            elif ping > 2000:
+            elif ping < 2000:
                 suggestions.append("slow")
+            elif ping >= 2000:
+                suggestions.append("very-slow") 
         
         if usage_count > 100:
             suggestions.append("Frequently Used")
