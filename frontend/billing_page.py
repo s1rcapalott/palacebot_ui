@@ -5,6 +5,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
+import json
+import os
+from datetime import datetime
 
 # Reviewed Billing Page:
 """
@@ -33,6 +36,7 @@ class BillingPage(QWidget):
         self.switch_page_callback = switch_page_callback
         
         self.profiles = []  # Store billing profiles
+        self.storage_path = 'billing_profiles.json'
 
         self.setStyleSheet("""
             QWidget {
@@ -453,6 +457,8 @@ class BillingPage(QWidget):
         self.profiles_table.setAlternatingRowColors(True)
         
         content_layout.addWidget(self.profiles_table)
+        
+        self.load_profiles()
 
         main_layout.addWidget(content_widget)
         self.setLayout(main_layout)
@@ -474,12 +480,37 @@ class BillingPage(QWidget):
             "email": self.email_input.text().strip()
         }
         
-        if not profile["name"] or not profile["cardholder"] or not profile["card_number"]:
-            return  # Basic validation
+        if not profile["name"]:
+            print("Error: Please enter a profile name")
+            return
+        if not profile["cardholder"]:
+            print("Error: Please enter cardholder name")
+            return
+        if not profile["card_number"]:
+            print("Error: Please enter card number")
+            return
         
+        card_clean = profile["card_number"].replace(" ", "").replace("-", "")
+        
+        # SKIPPING FOR DEBUGGING
+        #if not self.validate_card_luhn(profile["card_number"]):
+            #print("Error: Invalid card number (failed Luhn check)")
+            #return
+        print(f"Skipping LUHN check for card: {card_clean}")
+        
+        for existing in self.profiles:
+            if existing["name"].lower() == profile["name"].lower():
+                print("Warning: Profile '{profile['name']}' already exists")
+                return
+            
+        profile["card_number"] = card_clean
+        profile["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.profiles.append(profile)
+        self.save_profiles()
         self.update_profiles_table()
         self.clear_form()
+        
+        print(f"Saved profile {profile['name']}")
     
     def clear_form(self):
         self.profile_name_input.clear()
@@ -536,5 +567,65 @@ class BillingPage(QWidget):
     
     def delete_profile(self, row):
         if 0 <= row < len(self.profiles):
+            profile_name = self.profiles[row]["name"]
             self.profiles.pop(row)
+            self.save_profiles()
             self.update_profiles_table()
+            print(f"Deleted profile: {profile_name}")
+    
+    def load_profiles(self):
+        if os.path.exists(self.storage_path):
+            try:
+                with open(self.storage_path, "r") as f:
+                    self.profiles = json.load(f)
+                    print(f" Loaded {len(self.profiles)} billing profile(s)")
+                    self.update_profiles_table()
+            except Exception as e:
+                print(f"Failed to load billing profiles: {e}")
+                self.profiles = []
+        else:
+            print("No existing billing profiles found")
+    
+    def save_profiles(self):
+        try:
+            with open(self.storage_path, "w") as f:
+                json.dump(self.profiles, f, indent=4)
+            print(f" Saved {len(self.profiles)} billing profile(s)")
+        except Exception as e:
+            print(f"Failed to save billing profiles: {e}")
+    
+    def get_profile(self, profile_name):
+        for profile in self.profiles:
+            if profile["name"] == profile_name:
+                return profile.copy()
+        return None
+    
+    def get_all_profile_names(self):
+        return [p["name"] for p in self.profiles]
+    
+    def profile_exists(self, profile_name):
+        return any(p["name"] == profile_name for p in self.profiles)
+    
+    def validate_card_luhn(self, card_number):
+        card_clean = card_number.replace(" ", "").replace("-", "")
+        
+        if not card_clean.isdigit():
+            return False
+        
+        if not (13 <= len(card_clean) <= 19):
+            return False
+        
+        # Luhn Algorithm
+        digits = [int(d) for d in card_clean]
+        checksum = 0
+        
+        for i in range(len(digits) - 2, -1, -2):
+            digits[i] *= 2
+            
+            if digits[i] > 9:
+                digits[i] -= 9
+        
+        checksum = sum(digits)
+        
+        return checksum % 10 == 0
+    

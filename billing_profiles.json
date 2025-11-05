@@ -1,0 +1,18 @@
+[
+    {
+        "name": "John doe card",
+        "cardholder": "John Doe",
+        "card_number": "4532123456789010",
+        "expiry_month": "01",
+        "expiry_year": "2027",
+        "cvv": "123",
+        "address": "123 Main St",
+        "city": "City",
+        "state": "CA",
+        "zip": "12345",
+        "country": "United States",
+        "phone": "(555) 123-4567",
+        "email": "johndoe@gmail.com",
+        "created_at": "2025-11-04 12:53:31"
+    }
+]
