@@ -5,6 +5,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon
+import json
+import os
+from datetime import datetime
 
 """
     TODO List:
@@ -17,6 +20,10 @@ class TaskManagerPage(QWidget):
     def __init__(self, switch_page_callback):
         super().__init__()
         self.switch_page_callback = switch_page_callback
+        
+        self.tasks = []
+        self.storage_path = "tasks.json"
+        self.task_counter = 0
         
         # Main stylesheet - dark, modern theme
         self.setStyleSheet("""
@@ -304,92 +311,7 @@ class TaskManagerPage(QWidget):
         self.task_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.task_table.setShowGrid(False)
 
-        # Add sample data
-        sample_data = [
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "10", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "11.5", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "12", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "10", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "7.5", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "8.5", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "9", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "10", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "10.5", "Profile 1", "None", "Successfully Checked Out"),
-            ("Kith\nShopify", "adidas Yeezy 350 - Black", "12", "Profile 1", "None", "Successfully Checked Out"),
-        ]
-
-        self.task_table.setRowCount(len(sample_data))
-        
-        for row, data in enumerate(sample_data):
-            # Store with icon
-            store_widget = QWidget()
-            store_layout = QHBoxLayout(store_widget)
-            store_layout.setContentsMargins(8, 0, 0, 0)
-            store_icon = QLabel("🛍️")
-            store_text = QLabel(data[0])
-            store_text.setStyleSheet("color: #e4e6eb;")
-            store_layout.addWidget(store_icon)
-            store_layout.addWidget(store_text)
-            store_layout.addStretch()
-            self.task_table.setCellWidget(row, 0, store_widget)
-            
-            # Product
-            self.task_table.setItem(row, 1, QTableWidgetItem(data[1]))
-            
-            # Size
-            self.task_table.setItem(row, 2, QTableWidgetItem(data[2]))
-            
-            # Profile
-            self.task_table.setItem(row, 3, QTableWidgetItem(data[3]))
-            
-            # Proxies
-            self.task_table.setItem(row, 4, QTableWidgetItem(data[4]))
-            
-            # Status
-            status_widget = QWidget()
-            status_layout = QHBoxLayout(status_widget)
-            status_layout.setContentsMargins(8, 4, 8, 4)
-            status_label = QLabel(f"● {data[5]}")
-            status_label.setObjectName("statusSuccess")
-            status_label.setStyleSheet("""
-                background-color: #0d3a2e;
-                color: #00ff88;
-                border-radius: 4px;
-                padding: 4px 8px;
-                font-size: 11px;
-                font-weight: 600;
-            """)
-            status_layout.addWidget(status_label)
-            status_layout.addStretch()
-            self.task_table.setCellWidget(row, 5, status_widget)
-            
-            # Actions
-            actions_widget = QWidget()
-            actions_layout = QHBoxLayout(actions_widget)
-            actions_layout.setContentsMargins(4, 0, 4, 0)
-            actions_layout.setSpacing(4)
-            
-            play_btn = QPushButton("▶")
-            play_btn.setObjectName("tableActionBtn")
-            play_btn.setToolTip("Start Task")
-            
-            edit_btn = QPushButton("✏️")
-            edit_btn.setObjectName("tableActionBtn")
-            edit_btn.setToolTip("Edit Task")
-            
-            delete_btn = QPushButton("🗑️")
-            delete_btn.setObjectName("tableActionBtn")
-            delete_btn.setToolTip("Delete Task")
-            
-            actions_layout.addWidget(play_btn)
-            actions_layout.addWidget(edit_btn)
-            actions_layout.addWidget(delete_btn)
-            actions_layout.addStretch()
-            
-            self.task_table.setCellWidget(row, 6, actions_widget)
-            
-            # Set row height
-            self.task_table.setRowHeight(row, 50)
+       # Tasks will be loaded and displayed by load_tasks()
 
         content_layout.addWidget(self.task_table)
 
@@ -419,3 +341,131 @@ class TaskManagerPage(QWidget):
 
         main_layout.addWidget(content_widget)
         self.setLayout(main_layout)
+        
+    def load_tasks(self):
+        if os.path.exists(self.storage_path):
+            try:
+                with open(self.storage_path, "r") as f:
+                    self.tasks = json.load(f)
+                    print(f"Loaded {len(self.tasks)} task(s)")
+                    
+                    # Update task counter to avoid ID conflicts
+                    if self.tasks:
+                        task_nums = []
+                        for task in self.tasks:
+                            try:
+                                num = int(task["id"].split("_")[1])
+                                task_nums.append(num)
+                            except:
+                                pass
+                        if task_nums:
+                            self.task_counter = max(task_nums) + 1
+                    
+                    self.update_task_table()
+            except Exception as e:
+                print(f"Failed to load tasks: {e}")
+                self.tasks = []
+        else:
+            print("No existing tasks found")
+            
+    def save_tasks(self):
+        try:
+            with open(self.storage_path, "w") as f:
+                json.dump(self.tasks, f, indent=4)
+            print(f" Saved {len(self.tasks)} task(s)")
+        except Exception as e:
+            print(f"Failed to save tasks: {e}")
+    
+    def update_task_table(self):
+        self.task_table.setRowCount(len(self.tasks))
+        
+        for row, task in enumerate(self.tasks):
+            store_widget = QWidget()
+            store_layout = QHBoxLayout(store_widget)
+            store_icon = QLabel("🛍️")
+            store_text = QLabel(task.get("store", "Shoe Palace"))
+            store_text.setStyleSheet("color: #e4e6eb")
+            store_layout.addWidget(store_icon)
+            store_layout.addWidget(store_text)
+            store_layout.addStretch()
+            self.task_table.setCellWidget(row, 0, store_widget)
+            
+            # Product
+            product_name = task.get("product_name", "Unknown Product")
+            self.task_table.setItem(row, 1, QTableWidgetItem(product_name))
+            
+            # Size
+            size = str(task.get("size", "N/A"))
+            self.task_table.setItem(row, 3, QTableWidgetItem(size))
+            
+            # Profile
+            profile = task.get("profile", "None")
+            self.task_table.setItem(row, 3, QTableWidgetItem(profile))
+            
+            # Proxies
+            proxy_group = task.get("proxy_group", "None")
+            self.task_table.setItem(row, 4, QTableWidgetItem(proxy_group))
+            
+            # Status
+            status_widget = QWidget()
+            status_layout = QHBoxLayout(status_widget)
+            status_layout.setContentsMargins(8, 4, 8, 4)
+            
+            status = task.get("status", "Idle")
+            
+            # Color based on status
+            if "Success" in status or "Checked Out" in status:
+                color = "0d3a2e"
+                text_color = "#00d9ff"
+            elif "Running" in status or "Monitoring" in status:
+                color = "#1f3d3d"
+                text_color = "00d9ff"
+            elif "Failed" in status or "Error" in status:
+                color = "#3d1f1f"
+                text_color = "ff4444"
+            else:
+                color = "#2a3544"
+                text_color = "#8b92a0"
+            
+            status_label = QLabel(f"● {status}")
+            status_label.setStyleSheet(f"""
+                background-color: {color};
+                color: {text_color};
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 11px;
+                font-weight: 600;                       
+            """)
+            status_layout.addWidget(status_label)
+            status_layout.addStretch()
+            self.task_table.setCellWidget(row, 5, status_widget)
+            
+            # Actions
+            actions_widget = QWidget()
+            actions_layout = QHBoxLayout(actions_widget)
+            actions_layout.setContentsMargins(4, 0, 4, 0)
+            actions_layout.setSpacing(4)
+            
+            play_btn = QPushButton("▶")
+            play_btn.setObjectName("tableActionBtn")
+            play_btn.setToolTip("Start Task")
+            # Will connect later
+            
+            edit_btn = QPushButton("✏️")
+            edit_btn.setObjectName("tableActionBtn")
+            edit_btn.setToolTip("Edit Task")
+            # Will connect later
+            
+            delete_btn = QPushButton("🗑️")
+            delete_btn.setObjectName("tableActionBtn")
+            delete_btn.setToolTip("Delete Task")
+            delete_btn.clicked.connect(lambda checked, task_id=task["id"]: self.delete_task(task_id))
+            
+            actions_layout.addWidget(play_btn)
+            actions_layout.addWidget(edit_btn)
+            actions_layout.addWidget(delete_btn)
+            actions_layout.addStretch()
+            
+            self.task_table.setCellWidget(row, 6, actions_widget)
+            
+            self.task_table.setRowHeight(row, 50)
