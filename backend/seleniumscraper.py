@@ -1,5 +1,4 @@
 import logging
-import seleniumwire as sw
 from selenium import webdriver
 import asyncio
 import time
@@ -12,69 +11,161 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import contextlib
+import platform
+import random
 
-class SeleniumScraper():
+try:
+    import seleniumwire as sw
+    _SELENIUMWIRE_AVAILABLE = True
+except Exception:
+    _SELENIUMWIRE_AVAILABLE = False
 
-    def __init__(self, url,mode,json_data, proxy_manager= None):
+class _SessionProfile:
+    def __init__(self, system: str):
+        if system == "darwin":               # macOS
+            self.platform_str = '"macOS"'
+            self.user_agents = [
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            ]
+        elif system == "windows":
+            self.platform_str = '"Windows"'
+            self.user_agents = [
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            ]
+        else:                                # Linux
+            self.platform_str = '"Linux"'
+            self.user_agents = [
+                "Mozilla/5.0 (X11; Linux x86_64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            ]
+
+        import random
+        self.user_agent = random.choice(self.user_agents)
+
+        # Keep UA-CH aligned with your UA version (simple/static for now)
+        self.sec_ch_ua = '"Chromium";v="142", "Google Chrome";v="142", "Not:A-Brand";v="99"'
+
+        # Sticky, human-like defaults for this task
+        self.accept   = ("text/html,application/xhtml+xml,application/xml;q=0.9,"
+                         "image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+        self.encoding = "gzip, deflate, br, zstd"
+        self.language = "en-US,en;q=0.9"
+        self.priority = "u=0, i"
+        self.dnt      = "1"
+
+class SeleniumScraper:
+    """
+    Modes:
+      - "fast": raw Selenium (no request interception)
+      - "regular" / "super_safe": SeleniumWire, header interceptor, etc. (requires seleniumwire)
+    """
+
+    def __init__(
+        self,
+        url: str,
+        mode: str = "regular",
+        json_data: dict | None = None,
+        proxy_manager: Proxy_Manager | None = None,
+        headless: bool | None = True,
+        logger: logging.Logger | None = None,
+    ):
+        self.profile = _SessionProfile(platform.system().lower())
         self.url = url
+        self.last_url = None
         self.mode = mode
-        self.json_data = json_data
-        self.logger = logging.getLogger(__name__)
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter("%m-%d %H:%M:%S")
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
+        self.json_data = json_data or {}
+        self.proxy_manager = proxy_manager
+        self.cookies = {}
+        self.session_cookies = None
+
+        self.logger = logger or logging.getLogger(__name__)
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("%m-%d %H:%M:%S"))
+            self.logger.addHandler(handler)
+            self.logger.setLevel(logging.INFO)
+
         self.browser = None
         self.retry = 0
         self.proxy = None
-        self.headless = None
+        self.headless = headless
         self.page = None
         self.task_id = id(self)
-        self.proxy_manager = proxy_manager
-        self.setup_done = False
+        self._setup_done = False
+
+        if self.mode != "fast" and not _SELENIUMWIRE_AVAILABLE:
+            self.logger.warning(
+                "seleniumwire not installed; falling back to 'fast' mode."
+            )
+            self.mode = "fast"
+
+        
         #add a logger to this class 
 
     async def setup(self,group_name = 'default'):
         if self.proxy_manager:
-            self.proxy = await self.proxy_manager.assign_proxy_to_task(group_name = group_name,task_id = self.task_id)
+            self.proxy = await self.proxy_manager.assign_proxy_to_task(
+                group_name=group_name, task_id=self.task_id
+            )
+            if self.proxy:
+                self.logger.info(f"[setup] Assigned proxy {self.proxy} to task {self.task_id}")
+            else:
+                self.logger.warning("[setup] No proxy assigned; continuing without proxy.")
+            
     
     
     async def cleanup(self):
+        """
+    Close the browser first (so it stops using the proxy),
+    then release the proxy. Non-fatal on errors.
+        """
+    # 1) Kill browser without blocking the event loop
+        br = self.browser
+        self.browser = None  # ensure we don't reuse a dying handle
+        if br:
+            try:
+                await asyncio.to_thread(br.quit)
+                self.logger.info(f"[cleanup] Closed browser for task {self.task_id}")
+            except Exception as e:
+                # keep shutdown quiet; driver may already be gone
+                self.logger.debug(f"[cleanup] Ignored driver quit error: {e}")
+    # 2) Release proxy after browser is closed
         if self.proxy_manager:
-            await self.proxy_manager.release_proxy_from_task(self.task_id)
-
+            try:
+                await self.proxy_manager.release_proxy_from_task(task_id=self.task_id)
+                self.logger.info(f"[cleanup] Released proxy for task {self.task_id}")
+            except Exception as e:
+                self.logger.warning(f"[cleanup] Failed to release proxy: {e}")
     
-    def headers(self):
-        base_headers = {
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Referer": "https://www.shoepalace.com/",
-        "DNT": "1",
-        "Upgrade-Insecure-Requests": "1"
+    def headers(self, referer: str | None = None, is_navigation: bool = True):
+        p = self.profile
+        h = {
+            "Accept": p.accept,
+            "Accept-Encoding": p.encoding,
+            "Accept-Language": p.language,
+            "User-Agent": p.user_agent,
+             "Sec-CH-UA": p.sec_ch_ua,
+            "Sec-CH-UA-Mobile": "?0",
+            "Sec-CH-UA-Platform": p.platform_str,
+            "Priority": p.priority,
+            "DNT": p.dnt,
+            "Upgrade-Insecure-Requests": "1" if is_navigation else "0",
+            "Cache-Control": "max-age=0" if is_navigation else "no-cache",
+            "Sec-Fetch-Mode": "navigate" if is_navigation else "no-cors",
+            "Sec-Fetch-Dest": "document" if is_navigation else "empty",
+            "Sec-Fetch-User": "?1" if is_navigation else "?0",
     }
-
-        if self.mode == "super_safe":
-            import random
-            user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
-            ]
-            base_headers["User-Agent"] = random.choice(user_agents)
+        if referer:
+            h["Referer"] = referer
+            h["Sec-Fetch-Site"] = "same-origin"
         else:
-        # Regular or fast mode: use a fixed modern user-agent
-            base_headers["User-Agent"] = (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/122.0.0.0 Safari/537.36"
-            )
-
-        return base_headers
-
+            h["Sec-Fetch-Site"] = "none"
+        return h
         #Prepares and returns the headers required for making HTTP requests.
         #Returns A dictionary containing HTTP headers.
+        
 
 
     def get_options(self):
@@ -98,12 +189,13 @@ class SeleniumScraper():
             
 
     def interceptor(self, request):
-        headers = self.headers()
-        for k, v in headers.items():
+        # Treat document/main_frame as a navigation
+        is_nav = getattr(request, "resource_type", "") in ("document", "main_frame", "")
+        referer = self._last_url if (self._last_url and self._last_url.startswith("https://www.shoepalace.com")) else None
+        hdrs = self.headers(referer=referer, is_navigation=is_nav)
+        for k, v in hdrs.items():
             request.headers[k] = v
-        
     
-
     def get_browser(self):
         options = self.get_options()
 
