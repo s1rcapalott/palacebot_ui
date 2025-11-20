@@ -321,6 +321,7 @@ class TaskManagerPage(QWidget):
 
         create_btn = QPushButton("+ Create Tasks")
         create_btn.setObjectName("createTaskBtn")
+        create_btn.clicked.connect(self.open_create_task_dialog)
         bottom_layout.addWidget(create_btn)
 
         clear_btn = QPushButton("🗑️ Clear Tasks")
@@ -340,6 +341,7 @@ class TaskManagerPage(QWidget):
         content_layout.addLayout(bottom_layout)
 
         main_layout.addWidget(content_widget)
+        self.load_tasks()
         self.setLayout(main_layout)
         
     def load_tasks(self):
@@ -382,6 +384,7 @@ class TaskManagerPage(QWidget):
         for row, task in enumerate(self.tasks):
             store_widget = QWidget()
             store_layout = QHBoxLayout(store_widget)
+            store_layout.setContentsMargins(8, 0, 0, 0)
             store_icon = QLabel("🛍️")
             store_text = QLabel(task.get("store", "Shoe Palace"))
             store_text.setStyleSheet("color: #e4e6eb")
@@ -396,7 +399,7 @@ class TaskManagerPage(QWidget):
             
             # Size
             size = str(task.get("size", "N/A"))
-            self.task_table.setItem(row, 3, QTableWidgetItem(size))
+            self.task_table.setItem(row, 2, QTableWidgetItem(size))
             
             # Profile
             profile = task.get("profile", "None")
@@ -415,14 +418,14 @@ class TaskManagerPage(QWidget):
             
             # Color based on status
             if "Success" in status or "Checked Out" in status:
-                color = "0d3a2e"
+                color = "#0d3a2e"
                 text_color = "#00d9ff"
             elif "Running" in status or "Monitoring" in status:
                 color = "#1f3d3d"
                 text_color = "00d9ff"
             elif "Failed" in status or "Error" in status:
                 color = "#3d1f1f"
-                text_color = "ff4444"
+                text_color = "#ff4444"
             else:
                 color = "#2a3544"
                 text_color = "#8b92a0"
@@ -469,3 +472,62 @@ class TaskManagerPage(QWidget):
             self.task_table.setCellWidget(row, 6, actions_widget)
             
             self.task_table.setRowHeight(row, 50)
+    
+    def delete_task(self, task_id):
+        for i, task in enumerate(self.tasks):
+            if task["id"] == task_id:
+                product_name = task.get("product_name", "Unkown")
+                self.tasks.pop(i)
+                self.save_tasks()
+                self.update_task_table()
+                print(f"Deleted task: {product_name}")
+                return
+        print(f"Task {task_id} not found")
+        
+    def open_create_task_dialog(self):
+        from task_creation_form import TaskCreationDialog
+        
+        billing_profiles = ["Personal Card", "Mike card"] # Placeholder for now
+        
+        proxy_groups = ["defualt"] # Place holder
+        
+        dialog = TaskCreationDialog(
+            self,
+            billing_profiles=billing_profiles,
+            proxy_groups=proxy_groups
+        )
+        
+        if dialog.exec():  # User clicked "Create Task"
+            task_data = dialog.get_task_data()
+            
+            if not task_data["product_name"]:
+                print("Error: Product name is required")
+                return
+            
+            if not task_data["size"]:
+                print("Error: Size is required")
+                return
+            
+            # Create new task
+            task = {
+                "id": f"task_{self.task_counter:03d}",
+                "store": "Shoe Palace",  # Default for now
+                "product_name": task_data["product_name"],
+                "product_url": task_data["product_url"],
+                "size": task_data["size"],
+                "profile": task_data["profile"],
+                "proxy_group": task_data["proxy_group"],
+                "status": "Idle",
+                "keywords": task_data["keywords"],
+                "quantity": task_data["quantity"],
+                "max_price": task_data["max_price"],
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+            self.tasks.append(task)
+            self.task_counter += 1
+            
+            self.save_tasks()
+            self.update_task_table()
+            
+            print(f"Created task: {task['product_name']}")
