@@ -56,6 +56,23 @@ class MainWindow(QMainWindow):
         }
 
         QTimer.singleShot(0, lambda: asyncio.create_task(self.initialize_async()))
+    
+    def get_app_icon(self):
+        system = sys.platform
+        if system == "win32":
+            icon= "assets/icons/palace_icon.ico"
+        if system == "darwin":
+            icon= "assets/icons/palace_icon.icns"
+        else:
+            icon= "assets/icons/palace_icon.png"
+
+        icon_path = os.path.join(
+            os.path.dirname(__file__), 
+            "assets", 
+            "icons", 
+            icon_file
+        )
+      
 
     async def initialize_async(self):
         await self.proxy_manager.load_proxies()
