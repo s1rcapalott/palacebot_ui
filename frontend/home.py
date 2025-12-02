@@ -60,18 +60,22 @@ class MainWindow(QMainWindow):
     def get_app_icon(self):
         system = sys.platform
         if system == "win32":
-            icon= "assets/icons/palace_icon.ico"
+            icon_file= "assets/icons/palace_icon.ico"
         if system == "darwin":
-            icon= "assets/icons/palace_icon.icns"
+            icon_file= "assets/icons/palace_icon.icns"
         else:
-            icon= "assets/icons/palace_icon.png"
-
+            icon_file= "assets/icons/palace_icon.png"
         icon_path = os.path.join(
             os.path.dirname(__file__), 
-            "assets", 
-            "icons", 
+            "assets",  
             icon_file
         )
+
+        print(f"Looking for icon at: {icon_path}")
+        print(f"Icon exists: {os.path.exists(icon_path)}")
+
+        return icon_path
+    
       
 
     async def initialize_async(self):
