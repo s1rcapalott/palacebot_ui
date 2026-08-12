@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 
-class TaskCreationDialog(QWidget):
+class TaskCreationDialog(QDialog):
     def __init__(self, parent=None, billing_profiles=None, proxy_groups=None, accounts=None):
         super().__init__(parent)
         self.setWindowTitle("Create New Task")
@@ -105,11 +105,11 @@ class TaskCreationDialog(QWidget):
         
         # Quantity
         form_layout.addWidget(QLabel("Quantity:"), row, 0, Qt.AlignmentFlag.AlignRight)
-        self.quantiy_input = QSpinBox()
-        self.quantiy_input.setMinimum(1)
-        self.quantiy_input.setMaximum(10)
-        self.quantiy_input.setValue(1)
-        form_layout.addWidget(self.quantiy_input, row, 1)
+        self.quantity_input = QSpinBox() 
+        self.quantity_input.setMinimum(1)
+        self.quantity_input.setMaximum(10)
+        self.quantity_input.setValue(1)
+        form_layout.addWidget(self.quantity_input, row, 1)
         row += 1
         
         # Max Price
@@ -162,14 +162,15 @@ class TaskCreationDialog(QWidget):
     
     def get_task_data(self):
         keywords_text = self.keywords_input.text().strip()
-        keywords = [k.strip() for k in keywords_text.split(', ') if k.strip()]
+        keywords = [k.strip() for k in keywords_text.split(', ') if k.strip()] 
+        keywords = [k.strip() for k in keywords_text.split(',') if k.strip()]
         
         return {
             "product_url": self.url_input.text().strip(),
             "product_name": self.product_name_input.text().strip(),
             "keywords": keywords,
             "size": self.size_input.text().strip(),
-            "quantity": self.quantiy_input.value(),
+            "quantity": self.quantity_input.value(), # was quantiy_input
             "max_price": self.max_price_input.value(),
             "profile": self.profile_select.currentText(),
             "proxy_group": self.proxy_group_select.currentText(), 
