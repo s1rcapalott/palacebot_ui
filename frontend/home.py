@@ -3,6 +3,8 @@ import os
 import asyncio
 
 # Add parent directory to path so imports work
+from pathlib import Path
+base = Path(__file__).resolve().parent.parent
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
@@ -10,14 +12,16 @@ from PyQt6.QtCore import QTimer
 from qasync import QEventLoop
 
 # Import frontend pages (they're in same folder as this file)
-from home_page import HomePage
-from task_manager_page import TaskManagerPage
-from proxy_manager_page import ProxyManagerPage
-from billing_page import BillingPage
-from accounts_page import AccountsPage
+from palacebot_ui.frontend.home_page import HomePage
+from palacebot_ui.frontend.task_manager_page import TaskManagerPage
+from palacebot_ui.frontend.proxy_manager_page import ProxyManagerPage
+from palacebot_ui.frontend.billing_page import BillingPage
+from palacebot_ui.frontend.accounts_page import AccountsPage
 
 # Import backend
-from backend.proxy import Proxy_Manager
+from palacebot_ui.backend.proxy import Proxy_Manager
+
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -30,12 +34,13 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.stack)
 
         #Backend logic
-        self.proxy_manager = Proxy_Manager(proxy_file="proxy.json")
+        self.proxy_manager = Proxy_Manager( proxy_file=str(base / "backend" / "proxy.json"),
+    task_map_file=str(base / "backend" / "task_map.json"))
         print("Proxy file path:", self.proxy_manager.proxy_file)
 
         #Pages
         self.home_page = HomePage(self.switch_page)
-        self.task_page = TaskManagerPage(self.switch_page)
+        self.task_page = TaskManagerPage(self.switch_page, proxy_manager=self.proxy_manager)
         self.proxy_page = ProxyManagerPage(self.proxy_manager, self.switch_page)
         self.billing_page = BillingPage(self.switch_page)
         self.accounts_page = AccountsPage(self.switch_page)

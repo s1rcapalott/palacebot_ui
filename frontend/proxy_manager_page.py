@@ -7,12 +7,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from qasync import asyncSlot
 import asyncio
-import threading
 
-def run_async_task(coro):
-    def runner():
-        asyncio.run(coro)
-    threading.Thread(target=runner).start()
 
 class ProxyManagerPage(QWidget):
     def __init__(self, proxy_manager, switch_page_callback):
@@ -340,7 +335,7 @@ class ProxyManagerPage(QWidget):
 
         self.test_button = QPushButton("Test Proxies")
         self.test_button.setObjectName("testBtn")
-        self.test_button.clicked.connect(lambda: run_async_task(self.handle_test_proxies()))
+        self.test_button.clicked.connect(self.handle_test_proxies)
         input_layout.addWidget(self.test_button, 1, 4)
 
         self.input_section.setLayout(input_layout)
@@ -392,7 +387,6 @@ class ProxyManagerPage(QWidget):
         main_layout.addWidget(content_widget)
         self.setLayout(main_layout)
         
-        self.load_groups()
         self.group_select.currentIndexChanged.connect(self.update_proxy_table)
 
     def load_groups(self):
@@ -505,7 +499,7 @@ class ProxyManagerPage(QWidget):
                                 break
             else:
                 self.log_area.append(f"❌ {proxy['proxy']} - Failed to respond")
-                self.proxy_manager.update_proxy_stats(proxy['proxy'], group, status = "fail")
+                await self.proxy_manager.update_proxy_stats(proxy['proxy'], group, status="fail")
         
         await self.proxy_manager.save_proxies()
         self.update_proxy_table()
