@@ -159,10 +159,29 @@ class TaskCreationDialog(QDialog):
         button_layout.addWidget(save_btn)
         
         layout.addLayout(button_layout)
-    
+
+
+
+    def load_task(self, task: dict):
+        """Prefill dialog for editing an existing task."""
+        self.url_input.setText(task.get("product_url", ""))
+        self.product_name_input.setText(task.get("product_name", ""))
+        self.keywords_input.setText(", ".join(task.get("keywords", [])))
+        self.size_input.setText(str(task.get("size", "")))
+        self.quantity_input.setValue(int(task.get("quantity", 1)))
+        self.max_price_input.setValue(float(task.get("max_price", 200.00)))
+    # set combo to existing value if it exists
+        idx = self.profile_select.findText(task.get("profile", "default"))
+        if idx >= 0:
+            self.profile_select.setCurrentIndex(idx)
+        idx = self.proxy_group_select.findText(task.get("proxy_group", "default"))
+        if idx >= 0:
+            self.proxy_group_select.setCurrentIndex(idx)
+
+        self.setWindowTitle(f"Edit Task - {task.get('id','')}")
+
     def get_task_data(self):
         keywords_text = self.keywords_input.text().strip()
-        keywords = [k.strip() for k in keywords_text.split(', ') if k.strip()] 
         keywords = [k.strip() for k in keywords_text.split(',') if k.strip()]
         
         return {

@@ -258,7 +258,7 @@ class TaskManagerPage(QWidget):
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
         
-        self.task_table.setColumnWidth(0, 120)
+        self.task_table.setColumnWidth(0, 150)
         self.task_table.setColumnWidth(2, 80)
         self.task_table.setColumnWidth(3, 120)
         self.task_table.setColumnWidth(4, 100)
@@ -409,6 +409,7 @@ class TaskManagerPage(QWidget):
             edit_btn = QPushButton("✏️")
             edit_btn.setObjectName("tableActionBtn")
             edit_btn.setToolTip("Edit Task")
+            edit_btn.clicked.connect(lambda checked, task_id=task["id"]: self.edit_task(task_id))
             
             delete_btn = QPushButton("🗑️")
             delete_btn.setObjectName("tableActionBtn")
@@ -440,6 +441,19 @@ class TaskManagerPage(QWidget):
                 print(f"Deleted task: {product_name}")
                 return
         print(f"Task {task_id} not found")
+
+    def edit_task(self, task_id):
+        from palacebot_ui.frontend.task_creation_form import TaskCreationDialog
+        task = next((t for t in self.tasks if t["id"] == task_id), None)
+        if not task: return
+        proxy_groups = [g["group_name"] for g in self.proxy_manager.proxylist.get("Groups", [])] if self.proxy_manager else ["default"]
+        dialog = TaskCreationDialog(self, billing_profiles=["default"], proxy_groups=proxy_groups or ["default"])
+        dialog.load_task(task)
+        if dialog.exec():
+            data = dialog.get_task_data()
+            task.update(data)
+            self.save_tasks()
+            self.update_task_table()
         
     def open_create_task_dialog(self):
         # FIXED: absolute import
