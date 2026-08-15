@@ -16,9 +16,10 @@ import platform
 import random
 
 try:
-    import seleniumwire as sw
+    from seleniumwire import webdriver as sw
     _SELENIUMWIRE_AVAILABLE = True
 except Exception:
+    sw = None
     _SELENIUMWIRE_AVAILABLE = False
 
 class _SessionProfile:
@@ -80,7 +81,7 @@ class SeleniumScraper:
         self.logger = logger or logging.getLogger(__name__)
         if not self.logger.handlers:
             handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter("%m-%d %H:%M:%S"))
+            handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s", datefmt="%m-%d %H:%M:%S"))
             self.logger.addHandler(handler)
             self.logger.setLevel(logging.INFO)
         self.browser = None
@@ -157,6 +158,7 @@ class SeleniumScraper:
         chrome_options.add_experimental_option('useAutomationExtension', False)
         chrome_options.add_argument("--disable-infobars")
         chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-features=IsolatedOrigins,site-per-process")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--window-size=1920,1080")
@@ -177,26 +179,41 @@ class SeleniumScraper:
     def _stealth_inject(self, driver):
         try:
             driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-                "source": """
-                    Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                    window.chrome = { runtime: {} };
-                    Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
-                    Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});
-                    const originalQuery = window.navigator.permissions.query;
-                    window.navigator.permissions.query = (parameters) => (
-                        parameters.name === 'notifications' ?
-                            Promise.resolve({ state: Notification.permission }) :
-                            originalQuery(parameters)
-                    );
-                    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
-                    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
-                    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
-                """
+            "source": """
+                // kill Klaviyo / Attentive / JustUno popups before they show
+                Object.defineProperty(window, 'Klaviyo', {get: () => undefined, set: () => {}});
+                window.klaviyo = undefined;
+                // nuke any modal that tries to inject later
+                const mo = new MutationObserver(() => {
+                    document.querySelectorAll('[class*="klaviyo"], [class*="needsclick"], [role="dialog"], [class*="modal"], [id*="attentive"]').forEach(el=>{
+                        if(el.offsetHeight > 100) el.style.display='none';
+                    });
+                });
+                mo.observe(document.documentElement, {childList: true, subtree: true});
+            """
             })
-        except Exception:
-            pass
+        except: pass
+
+    # keep your existing webdriver fix below it
+        try:
+            driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                window.chrome = { runtime: {} };
+                Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+                Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+            """
+            })
+        except: pass
 
     def interceptor(self, request):
+        # BLOCK popup scripts before they load - no script, no modal
+        if any(x in request.url.lower() for x in ['klaviyo', 'attentive', 'justuno', 'listrak', 'email-signup']):
+            request.abort()
+            return
         is_nav = getattr(request, "resource_type", "") in ("document", "main_frame", "")
         referer = self._last_url if (self._last_url and "shoepalace.com" in self._last_url) else None
         hdrs = self.headers(referer=referer, is_navigation=is_nav)
@@ -233,6 +250,9 @@ class SeleniumScraper:
     # Now is async def + await + asyncio.sleep()
     async def get_page(self, url=None, group_name="default", timeout=30, retries=3, actions=None):
         target_url = url if url else self.url
+        if "?" in target_url and "variant" in target_url:
+            target_url = target_url.split("?")[0]  # strip query params for initial load
+            print(f"stripped variant query for initial load: {target_url}")
         self.retry = 0
         while self.retry < retries:
             try:
@@ -244,7 +264,8 @@ class SeleniumScraper:
                 await asyncio.sleep(random.uniform(0.5, 1.2))
                 await asyncio.to_thread(driver.get, target_url)
                 self._last_url = target_url
-                await asyncio.sleep(random.uniform(2.0, 3.5))
+                await asyncio.sleep(random.uniform(0.8,1.2))
+                await asyncio.to_thread(self.dismiss_any_popup, driver)
                 if actions:
                     for action in actions:
                         await asyncio.to_thread(self._do_action, driver, action)
@@ -321,3 +342,52 @@ class SeleniumScraper:
             self.logger.warning(f"Unknown action type '{action_type}'")
         if post_wait:
             time.sleep(post_wait + random.uniform(0, 0.5))
+
+    def dismiss_any_popup(self, driver):
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.common.keys import Keys
+        import time
+
+    # 1. Gift card X - your screenshot (bare ×, Klaviyo, Attentive)
+        for xpath in [
+        '//button[contains(text(),"×")]',
+        '//button[text()="X"]',
+        '//span[contains(text(),"×")]/parent::button',
+        '//div[contains(@class,"close")]//button',
+        '//div[@role="dialog"]//button',
+        ]:
+            try:
+                for b in driver.find_elements(By.XPATH, xpath):
+                    if b.is_displayed() and b.size['width'] > 10:
+                        driver.execute_script("arguments[0].click();", b)
+                        time.sleep(0.5)
+                        break
+            except: pass
+
+    # 2. Cookie Accept/Decline (this already works for you)
+        try:
+            for b in driver.find_elements(By.XPATH, '//button[contains(text(),"Accept") or contains(text(),"Decline")]'):
+                if b.is_displayed():
+                    driver.execute_script("arguments[0].click();", b)
+                    time.sleep(0.3)
+                    break
+        except: pass
+
+    # 3. ESC
+        try:
+            driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+            time.sleep(0.2)
+        except: pass
+
+    # 4. Nuke anything still blocking - handles bot-only inject that X click missed
+        try:
+            driver.execute_script("""
+        document.querySelectorAll('[class*="klaviyo"],[class*="needsclick"],[role="dialog"],[class*="modal"],[id*="attentive"],[class*="popup"]')
+        .forEach(el=>{ if(getComputedStyle(el).position==='fixed' && el.offsetHeight>100) el.remove(); });
+         // NEW: kill that bottom WOOPS teaser that blocks ADD TO CART
+        document.querySelectorAll('[class*="teaser"], [class*="WOOPS"], [id*="teaser"], [class*="onsite"]')
+        .forEach(el=> el.remove());
+        document.body.style.overflow='auto';
+        document.documentElement.style.overflow='auto';
+        """)
+        except: pass

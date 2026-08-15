@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, 
     QPushButton, QTableWidget, QTableWidgetItem, 
-    QHeaderView, QFrame, QLineEdit, QSpacerItem, QSizePolicy
+    QHeaderView, QFrame, QLineEdit, QSpacerItem, QSizePolicy,QMessageBox
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon
@@ -9,6 +9,11 @@ from pathlib import Path
 import json
 import os
 from datetime import datetime
+import random
+import asyncio
+from qasync import asyncSlot
+from selenium.webdriver.common.by import By
+
 
 class TaskManagerPage(QWidget):
     def __init__(self, switch_page_callback, proxy_manager=None, billing_manager=None):
@@ -286,13 +291,19 @@ class TaskManagerPage(QWidget):
 
         bottom_layout.addStretch()
 
-        start_btn = QPushButton("▶ Start Tasks")
-        start_btn.setObjectName("startTasksBtn")
-        bottom_layout.addWidget(start_btn)
+        self.start_btn = QPushButton("▶ Start Tasks")
+        self.start_btn.setObjectName("startTasksBtn")
+        self.start_btn.clicked.connect(self.start_tasks)    
+        bottom_layout.addWidget(self.start_btn)
 
-        stop_btn = QPushButton("⏹ Stop Tasks")
-        stop_btn.setObjectName("stopTasksBtn")
-        bottom_layout.addWidget(stop_btn)
+        self.stop_btn = QPushButton("⏹ Stop Tasks")
+        self.stop_btn.setObjectName("stopTasksBtn")
+        self.stop_btn.clicked.connect(self.stop_tasks)
+        bottom_layout.addWidget(self.stop_btn)
+
+        self.running = False
+        self.active_tasks = []
+
 
         content_layout.addLayout(bottom_layout)
 
@@ -454,7 +465,77 @@ class TaskManagerPage(QWidget):
             task.update(data)
             self.save_tasks()
             self.update_task_table()
-        
+
+    @asyncSlot()
+    async def start_tasks(self):
+        if self.running:
+            return
+        if not self.tasks:
+            QMessageBox.warning(self, "No Tasks", "Create a task first.")
+            return
+        self.running = True
+        self.start_btn.setEnabled(False)
+        print(f"Starting {len(self.tasks)} task(s)")
+        for task in self.tasks:
+            if not self.running:
+                break
+            if "Success" in task.get("status",""):
+                continue
+            await self.run_single_task(task)
+        self.running = False
+        self.start_btn.setEnabled(True)
+        print("All tasks finished")
+
+    def stop_tasks(self):
+        self.running = False
+        print("Stop requested")
+
+    async def run_single_task(self, task):
+        from palacebot_ui.backend.seleniumscraperupgrade import SeleniumScraper
+        from selenium.webdriver.common.by import By
+
+        task["status"] = "Running"
+        self.update_task_table()
+        url = task.get("product_url") or task.get("url") or ""
+        if "?" in url and "variant" in url:
+            url = url.split("?")[0]
+        size = str(task.get("size", "10.5"))
+        size_text = f"M{size}" if not size.startswith("M") else size
+
+        scraper = SeleniumScraper(url=url, proxy_manager=self.proxy_manager, headless=False, mode="fast")
+        try:
+            html = await scraper.get_page(group_name=task.get("proxy_group","default"), timeout=30)
+            if not html:
+                raise Exception("Failed to load")
+            driver = scraper.browser
+            try:
+                labels = driver.find_elements(By.CSS_SELECTOR, 'label.SizeSwatch')
+                target = next((l for l in labels if size_text in l.text), None)
+                if target:
+                    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", target)
+                    await asyncio.sleep(0.3)
+                    driver.execute_script("arguments[0].click();", target)
+                    await asyncio.sleep(0.8)
+            except: pass
+
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            await asyncio.sleep(0.5)
+            await asyncio.to_thread(driver.execute_script, "document.querySelectorAll('[class*=teaser],[class*=WOOPS]').forEach(e=>e.remove());")
+            await asyncio.sleep(0.3)
+            btn = driver.find_element(By.CSS_SELECTOR, 'form[action*="/cart/add"] button')
+            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
+            await asyncio.sleep(0.3)
+            driver.execute_script("arguments[0].click();", btn)
+            await asyncio.sleep(2)
+            task["status"] = "Success - Added to Cart" if "cart" in driver.page_source.lower() else "Failed - Cart not detected"
+        except Exception as e:
+            task["status"] = f"Failed - {str(e)[:40]}"
+        finally:
+            try: await scraper.cleanup()
+            except: pass
+            self.save_tasks()
+            self.update_task_table()
+    
     def open_create_task_dialog(self):
         # FIXED: absolute import
         from palacebot_ui.frontend.task_creation_form import TaskCreationDialog
