@@ -15,9 +15,10 @@ yarl==1.24.5
 # Address / location utilities
 geopy==2.4.1
 
-# Frontend - pinned to macOS 15.7 ARM working version (6.11 breaks cocoa)
+# DO NOT let pip auto-resolve versions here — PyQt6-Charts-Qt6 must be pinned or pip drags PyQt6/PyQt6-Qt6 to 6.11.x which breaks the cocoa platform plugin on macOS.
 PyQt6==6.6.1
+PyQt6-Charts==6.6.0
+PyQt6-Charts-Qt6==6.6.0
 PyQt6-Qt6==6.6.1
 PyQt6-sip==13.6.0
-PyQt6-Charts==6.6.0
 qasync==0.28.0

@@ -130,8 +130,8 @@ class TaskManagerPage(QWidget):
                 background-color: transparent;
                 border: none;
                 color: #8b92a0;
-                padding: 4px;
-                font-size: 16px;
+                padding: 2px 4px;
+                font-size: 14px;
             }
             QPushButton#tableActionBtn:hover {
                 color: #00d9ff;
@@ -263,14 +263,16 @@ class TaskManagerPage(QWidget):
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
         
-        self.task_table.setColumnWidth(0, 150)
-        self.task_table.setColumnWidth(2, 80)
-        self.task_table.setColumnWidth(3, 120)
-        self.task_table.setColumnWidth(4, 100)
-        self.task_table.setColumnWidth(5, 180)
-        self.task_table.setColumnWidth(6, 150)
+        self.task_table.setColumnWidth(0, 130)
+        self.task_table.setColumnWidth(2, 65)
+        self.task_table.setColumnWidth(3, 110)
+        self.task_table.setColumnWidth(4, 110)
+        self.task_table.setColumnWidth(5, 145)
+        self.task_table.setColumnWidth(6, 125)
         
         self.task_table.verticalHeader().setVisible(False)
+        self.task_table.verticalHeader().setDefaultSectionSize(58)
+        self.task_table.verticalHeader().setMinimumSectionSize(58)
         self.task_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.task_table.setShowGrid(False)
 
@@ -412,6 +414,7 @@ class TaskManagerPage(QWidget):
             actions_layout = QHBoxLayout(actions_widget)
             actions_layout.setContentsMargins(4, 0, 4, 0)
             actions_layout.setSpacing(4)
+            actions_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
             play_btn = QPushButton("▶")
             play_btn.setObjectName("tableActionBtn")
@@ -434,7 +437,7 @@ class TaskManagerPage(QWidget):
             
             self.task_table.setCellWidget(row, 6, actions_widget)
             
-            self.task_table.setRowHeight(row, 50)
+            self.task_table.setRowHeight(row, 58)
 
     def clear_all_tasks(self):
         self.tasks = []
